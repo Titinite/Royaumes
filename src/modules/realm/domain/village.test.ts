@@ -28,8 +28,8 @@ describe('Village - fondation', () => {
     const state = replay(events)
 
     expect(state.name).toBe('Valombre')
-    expect(state.stock).toEqual({ wood: 100, stone: 50, gold: 0 })
-    expect(state.levels).toEqual({ sawmill: 1, quarry: 1, mine: 0 })
+    expect(state.stock).toEqual({ wood: 100, stone: 50, gold: 0, wheat: 0 })
+    expect(state.levels).toEqual({ sawmill: 1, quarry: 1, mine: 0, mill: 0 })
   })
 
   it('refuse de fonder un second village', () => {
@@ -42,7 +42,7 @@ describe('Village - production paresseuse', () => {
   it('accumule la production en fonction du temps écoulé', () => {
     // Scierie 1 et carrière 1 : 10 bois et 6 pierres par minute.
     const view = toView(replay([founded]), T0 + minutes(5))
-    expect(view.stock).toEqual({ wood: 150, stone: 80, gold: 0 })
+    expect(view.stock).toEqual({ wood: 150, stone: 80, gold: 0, wheat: 0 })
   })
 
   it("reproduit l'exemple du support : amélioration de la mine à 5 minutes", () => {
@@ -53,14 +53,19 @@ describe('Village - production paresseuse', () => {
     const after = replay([founded, ...events])
 
     // Juste après l'amélioration : 150 - 80 bois, 80 - 60 pierres.
-    expect(after.stock).toEqual({ wood: 70, stone: 20, gold: 0 })
+    expect(after.stock).toEqual({ wood: 70, stone: 20, gold: 0, wheat: 0 })
     // Dix minutes plus tard, la mine produit 2 unités d'or par minute.
-    expect(toView(after, T0 + minutes(15)).stock).toEqual({ wood: 170, stone: 80, gold: 20 })
+    expect(toView(after, T0 + minutes(15)).stock).toEqual({
+      wood: 170,
+      stone: 80,
+      gold: 20,
+      wheat: 0,
+    })
   })
 
   it("extrapole le stock côté interface à partir d'une vue", () => {
     const view = toView(replay([founded]), T0)
-    expect(stockAt(view, T0 + minutes(1))).toEqual({ wood: 110, stone: 56, gold: 0 })
+    expect(stockAt(view, T0 + minutes(1))).toEqual({ wood: 110, stone: 56, gold: 0, wheat: 0 })
   })
 })
 

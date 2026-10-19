@@ -37,7 +37,7 @@ describe('Service du Village', () => {
 
     const view = await service.getView('alice')
     expect(view?.levels.mine).toBe(1)
-    expect(view?.stock).toEqual({ wood: 170, stone: 80, gold: 20 })
+    expect(view?.stock).toEqual({ wood: 170, stone: 80, gold: 20, wheat: 0 })
   })
 
   it("renvoie l'erreur métier sans rien enregistrer", async () => {
