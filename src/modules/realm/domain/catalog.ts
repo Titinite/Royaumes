@@ -5,14 +5,14 @@
  */
 
 /** Ressources du jeu. « as const » permet d'en déduire un type union. */
-export const RESOURCES = ['wood', 'stone', 'gold'] as const
+export const RESOURCES = ['wood', 'stone', 'gold', 'wheat'] as const
 export type Resource = (typeof RESOURCES)[number]
 
 /** Quantité de chaque ressource. */
 export type Stock = Record<Resource, number>
 
 /** Bâtiments du village. */
-export const BUILDINGS = ['sawmill', 'quarry', 'mine'] as const
+export const BUILDINGS = ['sawmill', 'quarry', 'mine', 'mill'] as const
 export type Building = (typeof BUILDINGS)[number]
 
 /** Niveau de chaque bâtiment (0 : non construit). */
@@ -32,11 +32,12 @@ export const CATALOG: Record<
   sawmill: { produces: 'wood', perMinute: 10, baseCost: { wood: 40, stone: 20 } },
   quarry: { produces: 'stone', perMinute: 6, baseCost: { wood: 60, stone: 10 } },
   mine: { produces: 'gold', perMinute: 2, baseCost: { wood: 80, stone: 60 } },
+  mill: { produces: 'wheat', perMinute: 4, baseCost: { wood: 150, stone: 100 } },
 }
 
 /** Exposant de la règle de coût : coût de base × (niveau + 1) ^ COST_EXPONENT. */
 export const COST_EXPONENT = 1.3
 
 /** Stock et niveaux d'un village au moment de sa fondation. */
-export const STARTING_STOCK: Stock = { wood: 100, stone: 50, gold: 0 }
-export const STARTING_LEVELS: Levels = { sawmill: 1, quarry: 1, mine: 0 }
+export const STARTING_STOCK: Stock = { wood: 100, stone: 50, gold: 0, wheat: 0 }
+export const STARTING_LEVELS: Levels = { sawmill: 1, quarry: 1, mine: 0, mill: 0 }

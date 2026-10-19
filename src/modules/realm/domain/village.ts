@@ -37,8 +37,8 @@ export interface VillageState {
 export const initialState: VillageState = {
   founded: false,
   name: '',
-  stock: { wood: 0, stone: 0, gold: 0 },
-  levels: { sawmill: 0, quarry: 0, mine: 0 },
+  stock: { wood: 0, stone: 0, gold: 0, wheat: 0 },
+  levels: { sawmill: 0, quarry: 0, mine: 0, mill: 0 },
   asOf: 0,
 }
 
@@ -79,7 +79,7 @@ export type Decision = { ok: true; events: VillageEvent[] } | { ok: false; error
 
 /** Production par minute de chaque ressource, pour des niveaux donnés. */
 export function productionPerMinute(levels: Levels): Stock {
-  const rates: Stock = { wood: 0, stone: 0, gold: 0 }
+  const rates: Stock = { wood: 0, stone: 0, gold: 0, wheat: 0 }
   for (const building of BUILDINGS) {
     const { produces, perMinute } = CATALOG[building]
     rates[produces] += perMinute * levels[building]

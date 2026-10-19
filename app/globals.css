@@ -68,7 +68,7 @@ input {
 }
 
 /* Écran du Village. */
-.stock { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+.stock { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
 .stock div { font-size: 1.3rem; font-variant-numeric: tabular-nums; }
 .stock small { display: block; font-size: 0.8rem; color: var(--muted); }
 .buildings { display: grid; gap: 12px; }

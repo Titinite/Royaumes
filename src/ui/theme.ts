@@ -16,9 +16,11 @@ export const theme: Record<string, Look> = {
   wood: { glyph: '🪵', label: 'Bois' },
   stone: { glyph: '🪨', label: 'Pierre' },
   gold: { glyph: '🪙', label: 'Or' },
+  wheat: { glyph: '🌾', label: 'Blé' },
   sawmill: { glyph: '🪚', label: 'Scierie' },
   quarry: { glyph: '⛏️', label: 'Carrière' },
   mine: { glyph: '⚒️', label: 'Mine' },
+  mill: { glyph: '🍞', label: 'Moulin' },
 }
 
 /** Apparence d'une entité ; une apparence neutre si l'entité n'est pas décrite. */
