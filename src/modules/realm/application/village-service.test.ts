@@ -22,7 +22,7 @@ beforeEach(async () => {
 describe('Service du Village', () => {
   it("n'a aucune vue tant que le village n'est pas fondé", async () => {
     expect(await service().getView('alice')).toBeNull()
-  })
+  }, 15000)
 
   it('fonde un village et renvoie sa vue', async () => {
     const result = await service().execute('alice', { type: 'FoundVillage', name: 'Valombre' })

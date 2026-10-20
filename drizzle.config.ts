@@ -11,6 +11,7 @@ export default defineConfig({
     './src/plateform/event-store/schema.ts',
     './src/modules/*/infrastructure/schema.ts',
     './src/plateform/auth/schema.ts',
+    './src/plateform/projection/schema.ts',
   ],
   out: './drizzle',
 })
