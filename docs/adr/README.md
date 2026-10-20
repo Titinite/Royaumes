@@ -10,3 +10,4 @@ un nouvel ADR est rédigé et l'ancien prend le statut « remplacé ».
 | [02](02-event-sourcing-village.md) | Event Sourcing pour le Village | Accepté |
 | [03](03-server-sent-events.md) | Server-Sent Events, alimentés par le journal, pour le temps réel | Accepté |
 | [04](04-manches-simultanees.md) | Manches simultanées et échéances paresseuses pour le Donjon | Accepté |
+| [05](05-intelligence-artificielle.md) | Intelligence artificielle déterministe, sans tâche de fond | Accepté |
