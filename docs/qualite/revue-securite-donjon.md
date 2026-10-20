@@ -16,7 +16,9 @@
 | D8 | L'échéance d'une manche est appréciée par l'horloge du serveur | Commande d'échéance envoyée avant l'échéance | Le serveur utilise sa propre horloge pour vérifier l'échéance d'une manche | Conforme |
 | D9 | Une action destinée à une manche déjà résolue est refusée | Test « refuse un choix pour une manche déjà résolue » | La logique métier contrôle le numéro de manche et refuse les choix devenus obsolètes | Conforme |
 | D10 | Connaître l'adresse d'une expédition ne permet pas d'y agir sans en être membre | Action envoyée par un joueur qui n'est pas membre | Un joueur non membre ne peut pas agir sur l'expédition (erreur NOT_A_MEMBER, HTTP 403). Il peut toutefois consulter la vue s'il connaît son adresse : ce risque est accepté car seules des informations publiques sont exposées et l'identifiant est un UUID aléatoire | Risque accepté |
+| D11 | Aucun joueur ne peut agir au nom d'un compagnon ni écouter le canal en son nom | Test « présente le compagnon comme prêt, et ne le compte pas parmi les membres » ; fonction `isMember` de `rules.ts` | Le compagnon n'est pas considéré comme un membre et aucun joueur ne peut agir ou écouter le canal en son nom. | Conforme |
+| D12 | L'intelligence artificielle ne transmet aux joueurs aucune information qu'ils n'auraient pas autrement | Lecture de `companion.ts` et `monster-strategies.ts` ; vue filtrée inchangée | L'IA utilise les informations disponibles dans le domaine et ne transmet pas d'informations supplémentaires aux joueurs. La vue reste filtrée | Conforme |
 
 ## Synthèse
 
-9 exigences conformes, 0 non conforme et 1 en risque accepté ; actions décidées : conserver la consultation d'une expédition par son adresse, en acceptant le risque puisque seules des informations publiques sont accessibles
+11 exigences conformes, 0 non conforme et 1 en risque accepté ; actions décidées : conserver la consultation d'une expédition par son adresse, en acceptant le risque puisque seules des informations publiques sont accessibles
