@@ -1,4 +1,4 @@
-# ADR-NNNN - Event Sourcing comme mode de persistance du Village
+# ADR-02 - Event Sourcing comme mode de persistance du Village
 
 - Statut : accepté
 - Date : 2026-10-19
