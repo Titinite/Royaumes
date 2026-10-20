@@ -1,5 +1,5 @@
 import { createBetterAuth } from '@/plateform/auth/better-auth'
-import type { AuthPort } from '@/plateform/auth/port'
+import type { AuthPort, AuthUser } from '@/plateform/auth/port'
 import { createDatabase } from '@/plateform/db/client'
 import { createEventStore } from '@/plateform/event-store/event-store'
 import { type Api, createApi } from './create-api'
@@ -36,4 +36,15 @@ export function getServer(): Server {
     globalForServer.royaumes = { api: createApi({ auth, store, ready }), auth, ready }
   }
   return globalForServer.royaumes
+}
+
+/**
+ * Joueur connecté, pour les pages rendues sur le serveur.
+ * Les pages n'appellent pas l'API : elles interrogent directement le port d'authentification,
+ * à partir des en-têtes de la requête reçue par Next.js.
+ */
+export async function currentUser(headers: Headers): Promise<AuthUser | null> {
+  const { auth, ready } = getServer()
+  await ready
+  return auth.getUser(headers)
 }
