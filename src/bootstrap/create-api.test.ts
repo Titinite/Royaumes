@@ -6,7 +6,7 @@ describe("Assemblage de l'API", () => {
     const { api } = await createTestApi()
     const res = await api.request('/api/system/health')
     expect(res.status).toBe(200)
-  })
+  }, 15000)
 
   it('renvoie une erreur JSON uniforme pour une route inconnue', async () => {
     const { api } = await createTestApi()

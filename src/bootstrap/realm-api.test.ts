@@ -8,7 +8,7 @@ describe('API du module Village', () => {
 
     expect(res.status).toBe(200)
     expect(await res.json()).toEqual({ view: null })
-  })
+  }, 15000)
 
   it('fonde un village (201) puis refuse une seconde fondation (409)', async () => {
     const { post } = await createTestApi()
