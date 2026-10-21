@@ -20,7 +20,7 @@ beforeEach(async () => {
   const db = await createTestDatabase()
   store = createEventStore(db)
   reader = createDrizzleOpenGamesReader(db, createProjectionRunner(db))
-})
+}, 15000)
 
 // Fabriques d'événements du Donjon.
 const created = (hostName: string, at = T0): NewEvent => ({

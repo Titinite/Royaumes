@@ -28,7 +28,7 @@ beforeEach(async () => {
   dispatcher.register(createRealmHandlers(service))
   dispatcher.register({ 'test.reply': async (message) => void replies.push(message.payload) })
   await service.execute('alice', { type: 'FoundVillage', name: 'Valombre' })
-})
+}, 15000)
 
 /** Enregistre une demande de mouvement, comme le ferait un autre module. */
 async function request(topic: string, payload: Partial<TransferRequest>) {

@@ -17,7 +17,7 @@ const service = () => createVillageService(repo, () => now)
 beforeEach(async () => {
   repo = createEventStoreVillageRepository(createEventStore(await createTestDatabase()))
   now = Date.UTC(2026, 0, 1)
-})
+}, 15000)
 
 describe('Service du Village', () => {
   it("n'a aucune vue tant que le village n'est pas fondé", async () => {
