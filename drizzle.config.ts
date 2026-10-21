@@ -12,6 +12,7 @@ export default defineConfig({
     './src/modules/*/infrastructure/schema.ts',
     './src/plateform/auth/schema.ts',
     './src/plateform/projection/schema.ts',
+    './src/plateform/outbox/schema.ts',
   ],
   out: './drizzle',
 })
