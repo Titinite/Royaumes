@@ -1,6 +1,6 @@
 import { Hono } from 'hono'
-import type { AppEnv } from '@/plateform/http/types'
-import { validateJson } from '@/plateform/http/validate'
+import type { AppEnv } from '@/platform/http/types'
+import { validateJson } from '@/platform/http/validate'
 import type { MarketService } from './application/market-service'
 import { type OfferError, PublishOfferInput } from './contracts'
 

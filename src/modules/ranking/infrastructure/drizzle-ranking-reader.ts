@@ -1,6 +1,6 @@
 import { asc, desc } from 'drizzle-orm'
-import type { Db } from '@/plateform/db/client'
-import type { ProjectionRunner } from '@/plateform/projection/projection'
+import type { Db } from '@/platform/db/client'
+import type { ProjectionRunner } from '@/platform/projection/projection'
 import type { RankingReader } from '../application/ranking-reader'
 import { rankingProjection } from './ranking-projection'
 import { players } from './schema'

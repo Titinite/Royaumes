@@ -1,4 +1,4 @@
-import type { NewMessage } from '@/plateform/outbox/outbox'
+import type { NewMessage } from '@/platform/outbox/outbox'
 import type { VillageEvent, VillageState } from '../domain/village'
 
 /**

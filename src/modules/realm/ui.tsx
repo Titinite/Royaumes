@@ -1,7 +1,7 @@
 'use client'
 import { hc } from 'hono/client'
 import { useCallback, useEffect, useState } from 'react'
-import { useChannel } from '@/plateform/realtime/use-channel'
+import { useChannel } from '@/platform/realtime/use-channel'
 import { Entity } from '@/ui/entity'
 import type { RealmApi } from './api'
 import {

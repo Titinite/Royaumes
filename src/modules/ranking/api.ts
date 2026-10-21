@@ -1,5 +1,5 @@
 import { Hono } from 'hono'
-import type { AppEnv } from '@/plateform/http/types'
+import type { AppEnv } from '@/platform/http/types'
 import type { RankingReader } from './application/ranking-reader'
 import { RANKING_SIZE } from './contracts'
 

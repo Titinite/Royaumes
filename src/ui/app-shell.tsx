@@ -2,7 +2,7 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import type { ReactNode } from 'react'
-import { authClient } from '@/plateform/auth/client'
+import { authClient } from '@/platform/auth/client'
 import { Entity } from './entity'
 
 /** Liens de navigation : chaque module ajouté au jeu y reçoit une entrée. */
@@ -14,7 +14,7 @@ export const NAV = [
   { href: '/tavern', kind: 'tavern', label: 'Taverne' },
 ]
 
-/** Cadre de l'espace de jeu : navigation, nom du joueur et déconnexion. */
+/** Cadre de l'espace de jeu : navigation, nom du joueur, accès à ses données et déconnexion. */
 export function AppShell({ userName, children }: { userName: string; children: ReactNode }) {
   const pathname = usePathname()
 
@@ -40,6 +40,9 @@ export function AppShell({ userName, children }: { userName: string; children: R
         <span className="muted" style={{ marginLeft: 'auto' }}>
           {userName}
         </span>
+        <Link href="/account" aria-current={pathname === '/account' ? 'page' : undefined}>
+          Mes données
+        </Link>
         <button className="link" type="button" onClick={signOut}>
           Déconnexion
         </button>

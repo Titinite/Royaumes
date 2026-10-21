@@ -1,6 +1,6 @@
 import { REALM_TOPICS } from '@/modules/realm/contracts'
-import { withOptimisticRetry } from '@/plateform/event-store/retry'
-import type { NewMessage } from '@/plateform/outbox/outbox'
+import { withOptimisticRetry } from '@/platform/event-store/retry'
+import type { NewMessage } from '@/platform/outbox/outbox'
 import { MARKET_TOPICS } from '../contracts'
 import {
   type Amounts,

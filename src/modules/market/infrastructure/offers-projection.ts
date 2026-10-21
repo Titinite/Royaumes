@@ -1,6 +1,6 @@
 import { eq } from 'drizzle-orm'
-import type { StoredEvent } from '@/plateform/event-store/event-store'
-import type { Projection } from '@/plateform/projection/projection'
+import type { StoredEvent } from '@/platform/event-store/event-store'
+import type { Projection } from '@/platform/projection/projection'
 import { OFFER_STREAM_PREFIX } from '../contracts'
 import type { OfferEvent } from '../domain/offer'
 import { offers } from './schema'

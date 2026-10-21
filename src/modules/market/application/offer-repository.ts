@@ -1,4 +1,4 @@
-import type { NewMessage } from '@/plateform/outbox/outbox'
+import type { NewMessage } from '@/platform/outbox/outbox'
 import type { OfferEvent, OfferState } from '../domain/offer'
 
 /** Port de persistance des offres, défini par la couche application. */

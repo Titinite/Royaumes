@@ -50,7 +50,7 @@ aucune n'est obligatoire. Pour définir vos propres valeurs, copiez ce fichier e
 ```
 app/                  Pages et route unique de l'API (Next.js)
 src/
-  plateform/           Plateforme technique, générique
+  platform/           Plateforme technique, générique
   modules/            Modules métier, un répertoire par contexte délimité
   bootstrap/          Racine de composition
   ui/                 Thème et composants d'interface partagés
@@ -97,7 +97,7 @@ raccourcir cette durée pour observer la reconnexion.
 
 Une opération qui modifie les données de plusieurs modules, comme un échange du Marché, est
 une saga (ADR 07) : chaque étape est une transaction locale à un module, et les modules
-communiquent par des messages enregistrés dans la boîte d'envoi (`plateform.outbox`), dans la
+communiquent par des messages enregistrés dans la boîte d'envoi (`platform.outbox`), dans la
 même transaction que leurs événements. Les messages sont distribués après chaque commande et
 chaque consultation du Marché, et chaque jour par une tâche planifiée de Vercel. Leur livraison
 est garantie au moins une fois : les gestionnaires de messages sont idempotents.

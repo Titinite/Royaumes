@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import type { MessageHandler } from '@/plateform/outbox/outbox'
+import type { MessageHandler } from '@/platform/outbox/outbox'
 import type { MarketService } from './application/market-service'
 import { MARKET_TOPICS } from './contracts'
 import { offerIdOf } from './domain/offer'

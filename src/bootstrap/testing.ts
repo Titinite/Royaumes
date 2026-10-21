@@ -1,6 +1,6 @@
-import type { AuthPort } from '@/plateform/auth/port'
-import { createTestDatabase } from '@/plateform/db/client'
-import { createEventStore } from '@/plateform/event-store/event-store'
+import type { AuthPort } from '@/platform/auth/port'
+import { createTestDatabase } from '@/platform/db/client'
+import { createEventStore } from '@/platform/event-store/event-store'
 import { createApi } from './create-api'
 
 /**

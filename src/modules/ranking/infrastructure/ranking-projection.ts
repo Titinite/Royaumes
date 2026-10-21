@@ -1,8 +1,8 @@
 import { eq, inArray, sql } from 'drizzle-orm'
 import { GAME_CHANNEL_PREFIX } from '@/modules/dungeon/contracts'
 import { VILLAGE_CHANNEL_PREFIX } from '@/modules/realm/contracts'
-import type { StoredEvent } from '@/plateform/event-store/event-store'
-import type { DbTransaction, Projection } from '@/plateform/projection/projection'
+import type { StoredEvent } from '@/platform/event-store/event-store'
+import type { DbTransaction, Projection } from '@/platform/projection/projection'
 import { gamePlayers, players } from './schema'
 
 /*

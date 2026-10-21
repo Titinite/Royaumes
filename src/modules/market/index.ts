@@ -3,10 +3,10 @@
  * Avec contracts.ts et ui.tsx, c'est le seul fichier du module qui peut être
  * importé depuis l'extérieur.
  */
-import type { Db } from '@/plateform/db/client'
-import type { EventStore } from '@/plateform/event-store/event-store'
-import type { ProjectionRunner } from '@/plateform/projection/projection'
-import type { ChannelPolicy } from '@/plateform/realtime/channel-policy'
+import type { Db } from '@/platform/db/client'
+import type { EventStore } from '@/platform/event-store/event-store'
+import type { ProjectionRunner } from '@/platform/projection/projection'
+import type { ChannelPolicy } from '@/platform/realtime/channel-policy'
 import { createMarketApi } from './api'
 import { createMarketService } from './application/market-service'
 import { MARKET_CHANNEL } from './contracts'
@@ -14,6 +14,7 @@ import { createDrizzleOffersReader } from './infrastructure/drizzle-offers-reade
 import { createEventStoreOfferRepository } from './infrastructure/event-store-offer-repository'
 import { offersProjection } from './infrastructure/offers-projection'
 import { createMarketHandlers } from './messages'
+import { createMarketPersonalData } from './personal-data'
 
 export interface MarketModuleDeps {
   /** Journal d'événements de la plateforme. */
@@ -46,7 +47,12 @@ export function createMarketModule({ store, db, projections, dispatch, clock }: 
     global: { types: offersProjection.eventTypes },
   }
 
-  return { api: createMarketApi(service), channelPolicy, handlers: createMarketHandlers(service) }
+  return {
+    api: createMarketApi(service),
+    channelPolicy,
+    handlers: createMarketHandlers(service),
+    personalData: createMarketPersonalData(store, db),
+  }
 }
 
 export type { MarketApi } from './api'

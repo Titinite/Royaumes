@@ -1,11 +1,11 @@
 import { beforeEach, describe, expect, it } from 'vitest'
-import { createTestDatabase } from '@/plateform/db/client'
+import { createTestDatabase } from '@/platform/db/client'
 import {
   createEventStore,
   type EventStore,
   type NewEvent,
-} from '@/plateform/event-store/event-store'
-import { createProjectionRunner } from '@/plateform/projection/projection'
+} from '@/platform/event-store/event-store'
+import { createProjectionRunner } from '@/platform/projection/projection'
 import type { RankingReader } from '../application/ranking-reader'
 import { createDrizzleRankingReader } from './drizzle-ranking-reader'
 

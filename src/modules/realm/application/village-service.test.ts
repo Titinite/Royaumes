@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest'
-import { createTestDatabase } from '@/plateform/db/client'
-import { ConcurrencyError, createEventStore } from '@/plateform/event-store/event-store'
+import { createTestDatabase } from '@/platform/db/client'
+import { ConcurrencyError, createEventStore } from '@/platform/event-store/event-store'
 import type { VillageEvent } from '../domain/village'
 import { createEventStoreVillageRepository } from '../infrasctructure/event-store-village-repository'
 import type { VillageRepository } from './village-repository'

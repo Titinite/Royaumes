@@ -1,6 +1,6 @@
 import { and, desc, eq, gt, or } from 'drizzle-orm'
-import type { Db } from '@/plateform/db/client'
-import type { ProjectionRunner } from '@/plateform/projection/projection'
+import type { Db } from '@/platform/db/client'
+import type { ProjectionRunner } from '@/platform/projection/projection'
 import type { OffersReader } from '../application/offers-reader'
 import type { OfferSummary } from '../contracts'
 import type { Amounts } from '../domain/offer'

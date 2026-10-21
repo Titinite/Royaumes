@@ -1,6 +1,6 @@
 import { and, desc, gt, lt } from 'drizzle-orm'
-import type { Db } from '@/plateform/db/client'
-import type { ProjectionRunner } from '@/plateform/projection/projection'
+import type { Db } from '@/platform/db/client'
+import type { ProjectionRunner } from '@/platform/projection/projection'
 import type { OpenGamesReader } from '../application/open-games-reader'
 import { MAX_HEROES, OPEN_GAME_MS } from '../domain/content'
 import { openGamesProjection } from './open-games-projection'

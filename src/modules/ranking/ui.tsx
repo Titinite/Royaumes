@@ -1,7 +1,7 @@
 'use client'
 import { hc } from 'hono/client'
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { type ChannelEvent, useChannel } from '@/plateform/realtime/use-channel'
+import { type ChannelEvent, useChannel } from '@/platform/realtime/use-channel'
 import { Entity } from '@/ui/entity'
 import type { RankingApi } from './api'
 import { RANKING_CHANNEL, type Ranking } from './contracts'

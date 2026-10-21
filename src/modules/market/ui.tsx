@@ -2,7 +2,7 @@
 import { hc } from 'hono/client'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { RESOURCES, type Resource } from '@/modules/realm/contracts'
-import { useChannel } from '@/plateform/realtime/use-channel'
+import { useChannel } from '@/platform/realtime/use-channel'
 import { Entity } from '@/ui/entity'
 import { look } from '@/ui/theme'
 import type { MarketApi } from './api'

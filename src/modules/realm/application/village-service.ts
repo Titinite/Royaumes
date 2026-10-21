@@ -1,5 +1,5 @@
-import { withOptimisticRetry } from '@/plateform/event-store/retry'
-import type { NewMessage } from '@/plateform/outbox/outbox'
+import { withOptimisticRetry } from '@/platform/event-store/retry'
+import type { NewMessage } from '@/platform/outbox/outbox'
 import type { TransferResult } from '../contracts'
 import {
   type DomainError,

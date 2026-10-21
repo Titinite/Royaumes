@@ -1,4 +1,4 @@
-import type { MessageHandler } from '@/plateform/outbox/outbox'
+import type { MessageHandler } from '@/platform/outbox/outbox'
 import type { VillageService } from './application/village-service'
 import { REALM_TOPICS, TransferRequest } from './contracts'
 import type { TransferCommand } from './domain/village'

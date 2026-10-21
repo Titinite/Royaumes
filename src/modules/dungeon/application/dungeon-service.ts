@@ -1,4 +1,4 @@
-import { withOptimisticRetry } from '@/plateform/event-store/retry'
+import { withOptimisticRetry } from '@/platform/event-store/retry'
 import { DEFAULT_DIFFICULTY, type Difficulty, MAX_HEROES } from '../domain/content'
 import { decide, type GameCommand, type GameError } from '../domain/rules'
 import { type GameView, toView } from '../domain/view'

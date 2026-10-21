@@ -8,11 +8,12 @@ import { defineConfig } from 'drizzle-kit'
 export default defineConfig({
   dialect: 'postgresql',
   schema: [
-    './src/plateform/event-store/schema.ts',
+    './src/platform/event-store/schema.ts',
     './src/modules/*/infrastructure/schema.ts',
-    './src/plateform/auth/schema.ts',
-    './src/plateform/projection/schema.ts',
-    './src/plateform/outbox/schema.ts',
+    './src/platform/auth/schema.ts',
+    './src/platform/projection/schema.ts',
+    './src/platform/outbox/schema.ts',
+    './src/platform/privacy/schema.ts',
   ],
   out: './drizzle',
 })

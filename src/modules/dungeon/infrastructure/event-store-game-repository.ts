@@ -1,4 +1,4 @@
-import type { EventStore, NewEvent, StoredEvent } from '@/plateform/event-store/event-store'
+import type { EventStore, NewEvent, StoredEvent } from '@/platform/event-store/event-store'
 import type { GameRepository } from '../application/game-repository'
 import { gameChannel } from '../contracts'
 import { type GameEvent, replay } from '../domain/game'

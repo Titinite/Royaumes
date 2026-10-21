@@ -1,6 +1,6 @@
 import { eq, sql } from 'drizzle-orm'
-import type { StoredEvent } from '@/plateform/event-store/event-store'
-import type { Projection } from '@/plateform/projection/projection'
+import type { StoredEvent } from '@/platform/event-store/event-store'
+import type { Projection } from '@/platform/projection/projection'
 import { GAME_CHANNEL_PREFIX } from '../contracts'
 import type { GameEvent } from '../domain/game'
 import { openGames } from './schema'

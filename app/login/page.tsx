@@ -2,7 +2,7 @@
 import { useRouter } from 'next/navigation'
 import { type FormEvent, useState } from 'react'
 import { HealthStatus } from '@/modules/system/ui'
-import { authClient } from '@/plateform/auth/client'
+import { authClient } from '@/platform/auth/client'
 import { Entity } from '@/ui/entity'
 
 /**

@@ -1,4 +1,4 @@
-import type { EventStore, NewEvent } from '@/plateform/event-store/event-store'
+import type { EventStore, NewEvent } from '@/platform/event-store/event-store'
 import type { OfferRepository } from '../application/offer-repository'
 import { offerStream } from '../contracts'
 import { type OfferEvent, replay } from '../domain/offer'

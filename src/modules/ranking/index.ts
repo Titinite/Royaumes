@@ -3,13 +3,14 @@
  * Avec contracts.ts et ui.tsx, c'est le seul fichier du module qui peut être
  * importé depuis l'extérieur.
  */
-import type { Db } from '@/plateform/db/client'
-import type { ProjectionRunner } from '@/plateform/projection/projection'
-import type { ChannelPolicy } from '@/plateform/realtime/channel-policy'
+import type { Db } from '@/platform/db/client'
+import type { ProjectionRunner } from '@/platform/projection/projection'
+import type { ChannelPolicy } from '@/platform/realtime/channel-policy'
 import { createRankingApi } from './api'
 import { RANKING_CHANNEL } from './contracts'
 import { createDrizzleRankingReader } from './infrastructure/drizzle-ranking-reader'
 import { rankingProjection } from './infrastructure/ranking-projection'
+import { createRankingPersonalData } from './personal-data'
 
 export interface RankingModuleDeps {
   /** Base de données, dans laquelle le module tient son modèle de lecture. */
@@ -33,7 +34,11 @@ export function createRankingModule({ db, projections }: RankingModuleDeps) {
     global: { types: rankingProjection.eventTypes },
   }
 
-  return { api: createRankingApi(reader), channelPolicy }
+  return {
+    api: createRankingApi(reader),
+    channelPolicy,
+    personalData: createRankingPersonalData(db, projections),
+  }
 }
 
 export type { RankingApi } from './api'

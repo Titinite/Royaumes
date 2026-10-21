@@ -3,13 +3,14 @@
  * Avec contracts.ts et ui.tsx, c'est le seul fichier du module qui peut être
  * importé depuis l'extérieur.
  */
-import type { Db } from '@/plateform/db/client'
-import type { ChannelPolicy } from '@/plateform/realtime/channel-policy'
+import type { Db } from '@/platform/db/client'
+import type { ChannelPolicy } from '@/platform/realtime/channel-policy'
 import { createTavernApi } from './api'
 import { createTavernService } from './application/tavern-service'
 import { MESSAGE_POSTED, TAVERN_CHANNEL } from './contracts'
 import { createDrizzleMessageRepository } from './infrastructure/drizzle-message-repository'
 import { createDrizzlePresenceRepository } from './infrastructure/drizzle-presence-repository'
+import { createTavernPersonalData } from './personal-data'
 
 export interface TavernModuleDeps {
   /** Base de données, dans laquelle la Taverne tient ses tables. */
@@ -50,7 +51,14 @@ export function createTavernModule({ db, clock }: TavernModuleDeps) {
     },
   }
 
-  return { api: createTavernApi(service), channelPolicy }
+  // La tâche quotidienne est confiée à la racine de composition, qui la fait exécuter
+  // par la tâche planifiée de Vercel.
+  return {
+    api: createTavernApi(service),
+    channelPolicy,
+    dailyTask: service.purge,
+    personalData: createTavernPersonalData(db),
+  }
 }
 
 export type { TavernApi } from './api'

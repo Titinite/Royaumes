@@ -1,4 +1,4 @@
-import type { EventStore, NewEvent } from '@/plateform/event-store/event-store'
+import type { EventStore, NewEvent } from '@/platform/event-store/event-store'
 import type { VillageRepository } from '../application/village-repository'
 import { villageChannel } from '../contracts'
 import { replay, type VillageEvent } from '../domain/village'

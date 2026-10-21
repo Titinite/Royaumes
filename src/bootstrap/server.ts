@@ -1,7 +1,7 @@
-import { createBetterAuth } from '@/plateform/auth/better-auth'
-import type { AuthPort, AuthUser } from '@/plateform/auth/port'
-import { createDatabase } from '@/plateform/db/client'
-import { createEventStore } from '@/plateform/event-store/event-store'
+import { createBetterAuth } from '@/platform/auth/better-auth'
+import type { AuthPort, AuthUser } from '@/platform/auth/port'
+import { createDatabase } from '@/platform/db/client'
+import { createEventStore } from '@/platform/event-store/event-store'
 import { type Api, createApi } from './create-api'
 
 /** Ce que l'application expose à Next.js. */
