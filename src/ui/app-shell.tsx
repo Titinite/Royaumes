@@ -37,15 +37,15 @@ export function AppShell({ userName, children }: { userName: string; children: R
             <Entity kind={item.kind} /> {item.label}
           </Link>
         ))}
-        <span className="muted" style={{ marginLeft: 'auto' }}>
-          {userName}
-        </span>
-        <Link href="/account" aria-current={pathname === '/account' ? 'page' : undefined}>
-          Mes données
-        </Link>
-        <button className="link" type="button" onClick={signOut}>
-          Déconnexion
-        </button>
+        <div className="nav-user">
+          <span className="muted">{userName}</span>
+          <Link href="/account" aria-current={pathname === '/account' ? 'page' : undefined}>
+            Mes données
+          </Link>
+          <button className="link" type="button" onClick={signOut}>
+            Déconnexion
+          </button>
+        </div>
       </nav>
       {children}
     </>
