@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 import { createTestDatabase, type Db } from '@/platform/db/client'
+import { createProjectionRunner } from '@/platform/projection/projection'
 import { claims, counters, gamePlayers, offerBuyers, villages } from './infrastructure/schema'
 import { createQuestsPersonalData } from './personal-data'
 
@@ -19,7 +20,7 @@ beforeEach(async () => {
 
 describe('Quêtes - données personnelles', () => {
   it('exporte la progression et les récompenses du joueur, et seulement les siennes', async () => {
-    const data = await createQuestsPersonalData(db).export('alice')
+    const data = await createQuestsPersonalData(db, createProjectionRunner(db)).export('alice')
     expect(data).toEqual({
       progress: [{ day: '2026-10-23', metric: 'upgrades', value: 2 }],
       claims: [{ day: '2026-10-23', quest: 'builder', claimedAt: 1 }],
@@ -28,7 +29,7 @@ describe('Quêtes - données personnelles', () => {
   })
 
   it("efface toutes les lignes du joueur, sans toucher à celles d'un autre joueur", async () => {
-    await createQuestsPersonalData(db).erase?.('alice', [])
+    await createQuestsPersonalData(db, createProjectionRunner(db)).erase?.('alice', [])
     for (const [table, column] of [
       [counters, counters.playerId],
       [claims, claims.playerId],

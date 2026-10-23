@@ -1,6 +1,8 @@
 import { asc, eq } from 'drizzle-orm'
 import type { Db } from '@/platform/db/client'
 import type { PersonalDataContributor } from '@/platform/privacy/privacy'
+import type { ProjectionRunner } from '@/platform/projection/projection'
+import { questsProjection } from './infrastructure/quests-projection'
 import { claims, counters, gamePlayers, offerBuyers, villages } from './infrastructure/schema'
 
 /**
@@ -8,11 +10,16 @@ import { claims, counters, gamePlayers, offerBuyers, villages } from './infrastr
  * rattachées à son identifiant. Le module n'enregistre pas d'événements : il n'a rien à
  * réécrire dans le journal, et l'effacement est une simple suppression.
  */
-export function createQuestsPersonalData(db: Db): PersonalDataContributor {
+export function createQuestsPersonalData(
+  db: Db,
+  projections: ProjectionRunner,
+): PersonalDataContributor {
   return {
     name: 'quests',
 
     async export(playerId) {
+      // Comme toute lecture du module, l'export rattrape d'abord la projection.
+      await projections.catchUp(questsProjection)
       return {
         progress: await db
           .select({ day: counters.day, metric: counters.metric, value: counters.value })

@@ -30,7 +30,7 @@ export function createQuestsModule({ db, projections, dispatch, clock }: QuestsM
   return {
     api: createQuestsApi(service),
     dailyTask: service.purge,
-    personalData: createQuestsPersonalData(db),
+    personalData: createQuestsPersonalData(db, projections),
   }
 }
 
