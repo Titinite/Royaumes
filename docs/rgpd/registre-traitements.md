@@ -5,7 +5,7 @@ réalisés par Royaumes. Il est tenu à jour à chaque évolution du jeu qui ajo
 supprime une donnée personnelle, dans le même commit que cette évolution.
 
 - Responsable du traitement : Thibault LERAY, thibault.leray@supdevinci-edu.fr.
-- Date de dernière mise à jour : 2026-10-21.
+- Date de dernière mise à jour : 2026-10-23.
 
 ## Sous-traitants
 
@@ -25,6 +25,13 @@ supprime une donnée personnelle, dans le même commit que cette évolution.
 | T5 | Présence dans la Taverne | Indiquer les joueurs présents | Identifiant, nom, date du dernier signal | Joueurs | Exécution du contrat | Deux minutes après le dernier signal | `tavern.presence` |
 | T6 | Registre des effacements | Démontrer la réalisation des effacements | Date de l'effacement, nombre d'événements réécrits ; aucune donnée sur le joueur | Aucune personne identifiable | Obligation légale (responsabilité, article 5) | Illimitée | `platform.erasures` |
 | T7 | Journaux techniques | Diagnostiquer les erreurs, assurer la sécurité | Adresse IP, adresses des requêtes, messages d'erreur | Joueurs, visiteurs | Intérêt légitime (sécurité, maintenance) | Durée fixée par l'hébergeur : 1 heure | Vercel |
+| T8 | Progression des quêtes quotidiennes | Proposer les quêtes du jour, verser leurs récompenses, afficher le badge du jour | Identifiant du joueur ; valeur de ses actions par jour (améliorations, expéditions, offres, achats) ; quêtes réclamées et date de réclamation ; fondation du village ; participation aux expéditions et aux achats en cours | Joueurs | Exécution du contrat | Sept jours (tâche quotidienne), ou jusqu'à la suppression du compte | `quests.counters`, `quests.claims`, `quests.villages`, `quests.game_players`, `quests.offer_buyers` |
+
+## Mesures de sécurité propres aux traitements
+
+| Traitement | Mesures |
+| --- | --- |
+| T8 | Routes réservées aux joueurs connectés ; le joueur est toujours celui de la session, aucune route n'accepte d'identifiant de joueur ; la liste des champions ne contient que des identifiants, sans progression ; données limitées à des identifiants et des compteurs, sans nom ni contenu libre ; suppression après sept jours et à la suppression du compte (`src/modules/quests/personal-data.ts`) ; schéma `quests` séparé |
 
 ## Droits des personnes
 

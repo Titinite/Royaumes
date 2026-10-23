@@ -81,6 +81,7 @@ Un module n'est accessible depuis l'extérieur que par ses entrées publiques : 
 | `ranking` | Classement des joueurs, construit à partir des événements du Village et du Donjon | `/api/ranking` |
 | `market` | Marché : échanges de ressources entre joueurs, par une saga orchestrée | `/api/market` |
 | `tavern` | Taverne : salon de discussion commun et présence des joueurs, sans Event Sourcing | `/api/tavern` |
+| `quests` | Quêtes : 4 objectifs quotidiens réalisés dans les autres modules, récompenses versées au Village, badge dans la Taverne | `/api/quests` |
 
 ## Temps réel
 
@@ -105,6 +106,9 @@ Un flux se ferme de lui-même au bout de 240 secondes, et le navigateur s'y reco
 sans perte d'événement. En développement, la variable `STREAM_MAX_SECONDS` permet de
 raccourcir cette durée pour observer la reconnexion.
 
+Le module Quêtes n'a pas de canal propre : la progression est relue à l'ouverture de l'écran
+des quêtes, et après chaque réclamation.
+
 ## Échanges entre modules
 
 Une opération qui modifie les données de plusieurs modules, comme un échange du Marché, est
@@ -115,6 +119,10 @@ chaque consultation du Marché, et chaque jour par la tâche planifiée `/api/cr
 est garantie au moins une fois : les gestionnaires de messages sont idempotents. Un message qui
 échoue dix fois est abandonné : la tâche quotidienne le signale, et le script
 `scripts/dead-letters.ts` permet de l'examiner, puis de le relancer une fois sa cause corrigée.
+
+Les Quêtes utilisent la même boîte d'envoi pour demander au Village de verser une récompense
+(`realm.deposit`). N'enregistrant pas d'événements, elles écrivent le message par la fonction
+`enqueue` de la plateforme, dans la transaction de la réclamation (ADR 11).
 
 ## Service Village extrait
 
@@ -142,8 +150,9 @@ page « Mes données » :
   d'événements (ADR 08). Chaque effacement est consigné dans `platform.erasures`.
 
 Les messages de la Taverne sont conservés trente jours, et la présence d'un joueur deux
-minutes après son dernier signal. Ces durées sont appliquées à chaque lecture, et chaque jour
-par la tâche planifiée `/api/cron/daily`.
+minutes après son dernier signal. La progression des quêtes et les récompenses réclamées
+sont conservées sept jours. Ces durées sont appliquées chaque jour par la tâche planifiée
+`/api/cron/daily` ; celles de la Taverne le sont aussi à chaque lecture.
 
 ## Base de données
 
@@ -153,7 +162,7 @@ démarrage. Pour repartir d'une base vide, arrêtez le serveur et supprimez le r
 
 Les tests utilisent une base PGlite en mémoire, recréée pour chaque fichier de test.
 
-Le classement et la liste des expéditions ouvertes sont des modèles de lecture, tenus à jour
+Le classement, la liste des expéditions ouvertes et la progression des quêtes sont des modèles de lecture, tenus à jour
 par des projections à partir du journal d'événements (ADR 06). Chaque projection est
 rattrapée à la consultation, et reconstruite automatiquement lorsque sa version change :
 une modification qui change le contenu de ses tables doit donc augmenter sa version.
@@ -191,6 +200,8 @@ sans la première ; sans la seconde, la route des tâches quotidiennes reste fer
 - [Registre des traitements](docs/rgpd/registre-traitements.md)
 - [Revue de conformité au RGPD](docs/rgpd/revue-conformite.md)
 - [Bilan technique](docs/bilan-technique.md)
+- [Fiches de cadrage de l'évaluation](docs/evaluation/fiche-cadrage-quests.md)
+- [Document de rendu](docs/evaluation/rendu.md)
 
 ## Conventions
 
@@ -224,3 +235,9 @@ pseudonymisée : plus aucune table ne le relie à une personne (ADR 08).
 Le service Village extrait n'est pas prêt pour la production : ses migrations, la pagination
 de son flux publié et la distribution de sa boîte d'envoi restent à traiter. Ces limites, et
 les autres limites connues, sont recensées dans le registre de la dette technique.
+
+Les quêtes changent à minuit en temps universel, soit 1 h ou 2 h du matin en France. Le badge
+du jour est recalculé à chaque ouverture de la Taverne pour tous les joueurs actifs du jour.
+Une récompense réclamée est versée de manière asynchrone : si le Village échoue, elle n'arrive
+qu'au nouvel essai de la boîte d'envoi. Les participants d'une expédition jamais terminée
+restent dans une table de travail des Quêtes (dette DT-011 à DT-013).

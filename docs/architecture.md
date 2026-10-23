@@ -12,7 +12,7 @@ dans le même commit que la modification qu'ils décrivent.
 ```mermaid
 flowchart TB
   joueur["Joueur<br/>[Personne]<br/>Joue depuis un navigateur,<br/>sur ordinateur ou sur téléphone"]
-  royaumes["Royaumes<br/>[Système logiciel]<br/>Jeu web multijoueur : village, donjon,<br/>classement, marché et taverne"]
+  royaumes["Royaumes<br/>[Système logiciel]<br/>Jeu web multijoueur : village, donjon,<br/>classement, marché, taverne et quêtes"]
   joueur -->|"Gère son village, joue avec les autres joueurs,<br/>reçoit les changements en direct (HTTPS)"| royaumes
 ```
 
@@ -28,7 +28,7 @@ flowchart TB
   subgraph royaumes["Système Royaumes"]
     web["Interface web<br/>[Conteneur : React, dans le navigateur]<br/>Pages du jeu et page de connexion"]
     serveur["Application serveur<br/>[Conteneur : Next.js et Hono, fonctions Vercel, Francfort]<br/>Rendu des pages, API JSON,<br/>authentification, flux temps réel"]
-    base[("Base de données<br/>[Conteneur : PostgreSQL, Neon, Francfort]<br/>Schéma platform : journal, points de reprise,<br/>boîte d'envoi, registre des effacements<br/>Schéma identity : comptes et sessions<br/>Schémas ranking, dungeon et market :<br/>modèles de lecture<br/>Schéma tavern : messages et présence")]
+    base[("Base de données<br/>[Conteneur : PostgreSQL, Neon, Francfort]<br/>Schéma platform : journal, points de reprise,<br/>boîte d'envoi, registre des effacements<br/>Schéma identity : comptes et sessions<br/>Schémas ranking, dungeon et market :<br/>modèles de lecture<br/>Schéma tavern : messages et présence<br/>Schéma quests : progression du jour<br/>et récompenses réclamées")]")]
   end
   joueur -->|"Utilise"| web
   web -->|"Pages, appels de l'API avec le cookie de session<br/>(HTTPS, JSON)"| serveur
@@ -44,6 +44,8 @@ flowchart TB
 
 Le journal d'événements est la seule source de vérité des modules Village, Donjon et Marché.
 La Taverne n'enregistre pas d'événements : ses tables sont sa propre source de vérité (ADR 0008).
+Les Quêtes n'enregistrent pas non plus d'événements : la progression des joueurs est un modèle de lecture tenu par une projection, et seules les récompenses réclamées sont propres au module.
+Toutes ces données sont supprimées au bout de sept jours (ADR 0010).
 Les tables des schémas `ranking`, `dungeon` et `market` sont des modèles de lecture, dérivés du journal par des projections : elles peuvent
 être vidées puis reconstruites à tout moment, sans perte d'information.
 
@@ -67,6 +69,7 @@ flowchart TB
     ranking["ranking<br/>Classement : projection,<br/>lecture, API, canal global"]
     market["market<br/>Marché : orchestrateur de la saga,<br/>projection des offres, API, canal global"]
     tavern["tavern<br/>Taverne : messages et présence<br/>en tables, API, canal à source propre"]
+    quests["quests<br/>Quêtes : tirage et règles du jour,<br/>projection des actions, réclamation,<br/>API, tâche quotidienne"]
   end
   subgraph platform["src/platform"]
     auth["auth<br/>Port AuthPort,<br/>adaptateur Better Auth"]
@@ -83,13 +86,16 @@ flowchart TB
   route --> server
   pages --> server
   server --> createapi
-  createapi --> system & realm & dungeon & ranking & market & tavern & auth & http & realtime & projection & outbox & privacy & cron
+  createapi --> system & realm & dungeon & ranking & market & tavern & quests & auth & http & realtime & projection & outbox & privacy & cron
   realm --> store & realtime & http & outbox
   market --> store & projection & realtime & http & outbox
   dungeon --> store & projection & realtime & http
   ranking --> projection & realtime & http
   tavern --> realtime & http & db
-  realm & dungeon & market & ranking & tavern --> privacy
+  realm & dungeon & market & ranking & tavern & quests --> privacy
+  quests --> projection & outbox & http & db
+  quests -. "contrats (langage publié)" .-> realm & dungeon & market
+  tavern -. "ui.tsx (badge)" .-> quests
   privacy --> store
   auth --> privacy
   realtime --> store & http
@@ -141,6 +147,61 @@ données personnelles.
 
 Seule la racine de composition connaît à la fois la plateforme et l'ensemble des modules.
 
+## Les Quêtes et les modules existants
+
+Le module `quests` communique avec quatre modules existants, sans modifier le serveur d'aucun
+d'entre eux (ADR 0011) :
+
+- il **lit le langage publié** du Village, du Donjon et du Marché : sa projection suit leurs
+  événements dans le journal et tient la progression de chaque joueur, jour par jour. Comme le
+  Classement, il n'importe que leurs contrats ;
+- il **demande au Village de verser les récompenses** par le message `realm.deposit` de la boîte
+  d'envoi, enregistré dans la même transaction que la réclamation, grâce à la fonction `enqueue`
+  de la plateforme. Le `transferId` déterminé par le joueur, le jour et la quête rend le
+  versement idempotent ;
+- l'**écran de la Taverne** lit `GET /api/quests/champions`, par l'entrée publique
+  `quests/ui.tsx`, pour afficher le badge des joueurs qui ont terminé leurs quêtes du jour.
+
+Le diagramme suivant présente la réclamation d'une récompense, qui traverse les Quêtes, la
+plateforme et le Village.
+
+```mermaid
+sequenceDiagram
+  autonumber
+  actor J as Joueur
+  participant UI as Interface web<br/>(quests/ui.tsx)
+  participant API as API Quêtes<br/>(/api/quests)
+  participant S as Service des Quêtes
+  participant P as Projection quests
+  participant DB as Base de données
+  participant D as Distributeur<br/>(boîte d'envoi)
+  participant V as Village<br/>(gestionnaire realm.deposit)
+
+  J->>UI: Clique sur « Réclamer »
+  UI->>API: POST /api/quests/:slot/claim (cookie de session)
+  API->>API: requireUser, validation de :slot
+  API->>S: claim(joueur, slot)
+  S->>P: catchUp()
+  P->>DB: Lit les nouveaux événements du journal<br/>(BuildingUpgraded, GameEnded, TradeCompleted...)
+  P->>DB: Met à jour quests.counters et le point de reprise
+  S->>DB: Lit counters, claims et villages
+  S->>S: checkClaim : terminée, non réclamée, village fondé
+  alt Quête non terminée, déjà réclamée, ou sans village
+    S-->>API: Erreur métier
+    API-->>UI: 409
+  else Réclamation acceptée
+    S->>DB: Transaction : INSERT quests.claims<br/>et INSERT platform.outbox (realm.deposit)
+    S->>D: dispatch()
+    D->>V: Message realm.deposit (transferId, ressources)
+    V->>DB: Ajoute ResourcesDeposited au flux village-joueur<br/>(ignoré si le transferId est déjà connu)
+    S-->>API: Tableau du jour à jour
+    API-->>UI: 200, quête « Récompense reçue »
+  end
+```
+
+Si le Village échoue, la réclamation reste enregistrée et le message reste dans la boîte
+d'envoi : il est retenté par le distributeur, au plus tard par la tâche quotidienne.
+
 ## Extraction du Village
 
 Le Village peut s'exécuter dans un service autonome, distinct de l'application serveur
@@ -185,8 +246,7 @@ Chaque envoi sur la branche `main` déclenche un déploiement. Le code n'est pub
 l'ensemble des contrôles a réussi, et les migrations ne sont appliquées qu'après ces contrôles.
 
 La tâche planifiée, déclarée dans `vercel.json`, exécute chaque jour les tâches quotidiennes :
-la distribution des messages restés en attente dans la boîte d'envoi, et l'application des
-durées de conservation de la Taverne. Elle ne s'exécute que sur le déploiement de production.
+la distribution des messages restés en attente dans la boîte d'envoi, et l'application des durées de conservation de la Taverne et des Quêtes. Elle ne s'exécute que sur le déploiement de production.
 
 Le service Village extrait n'est pas déployé : en production, le Village s'exécute dans
 les fonctions Vercel, comme les autres modules (ADR 0009).
