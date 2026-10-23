@@ -99,6 +99,13 @@
       "when": 1792748221248,
       "tag": "0013_quests",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1792765295669,
+      "tag": "0014_achievements",
+      "breakpoints": true
     }
   ]
 }
