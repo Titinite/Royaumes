@@ -6,10 +6,13 @@ import type { StoredEvent } from '../event-store/event-store'
  * afin que l'interface les reçoive comme ceux des autres canaux.
  */
 export interface ChannelSource {
-  /** Éléments postérieurs à une position, dans l'ordre croissant des positions. */
-  read(after: number): Promise<StoredEvent[]>
+  /**
+   * Éléments postérieurs à une position, dans l'ordre croissant des positions. Le nom du canal
+   * permet à une même source de servir plusieurs canaux, par exemple un canal par joueur.
+   */
+  read(after: number, channel: string): Promise<StoredEvent[]>
   /** Position de départ d'un abonné qui n'en fournit aucune. */
-  start(): Promise<number>
+  start(channel: string): Promise<number>
 }
 
 /**
