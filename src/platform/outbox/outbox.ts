@@ -43,6 +43,16 @@ export const toOutboxRow = (message: NewMessage) => ({
     : {}),
 })
 
+/**
+ * Enregistre des messages dans la boîte d'envoi, sans événement. Le module qui conserve ses
+ * données dans des tables l'appelle dans sa propre transaction : les messages ne sont
+ * enregistrés que si ses écritures le sont, comme avec le journal d'événements.
+ */
+export async function enqueue(db: Db, messages: NewMessage[]) {
+  if (messages.length === 0) return
+  await db.insert(outbox).values(messages.map(toOutboxRow))
+}
+
 export interface DispatcherOptions {
   /** Nombre maximal de tentatives ; au-delà, le message est abandonné et reste à examiner. */
   maxAttempts?: number

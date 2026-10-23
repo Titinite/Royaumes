@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 import { createTestDatabase, type Db } from '../db/client'
 import { ConcurrencyError, createEventStore, type EventStore } from '../event-store/event-store'
-import { createDispatcher, type Message } from './outbox'
+import { createDispatcher, enqueue, type Message } from './outbox'
 import { outbox } from './schema'
 
 // Chaque test dispose d'un journal neuf et d'une boîte d'envoi vide.
@@ -24,6 +24,23 @@ function testClock() {
 
 /** Message de test, sur le sujet « test.ping ». */
 const ping = (n: number) => ({ topic: 'test.ping', payload: { n } })
+
+describe("Boîte d'envoi : enregistrement sans événement", () => {
+  it('enregistre les messages dans la transaction de l’appelant', async () => {
+    await db.transaction((tx) => enqueue(tx, [ping(1)]))
+    expect((await db.select().from(outbox)).map((row) => row.payload)).toEqual([{ n: 1 }])
+  })
+
+  it("n'enregistre aucun message si la transaction de l'appelant est annulée", async () => {
+    await expect(
+      db.transaction(async (tx) => {
+        await enqueue(tx, [ping(1)])
+        throw new Error('annulation')
+      }),
+    ).rejects.toThrow('annulation')
+    expect(await db.select().from(outbox)).toEqual([])
+  })
+})
 
 describe("Boîte d'envoi : enregistrement", () => {
   it('enregistre les messages avec les événements, dans la même transaction', async () => {
