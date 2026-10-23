@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it } from 'vitest'
 import { createTestDatabase, type Db } from '../db/client'
 import { createBetterAuth } from './better-auth'
 import type { AuthPort } from './port'
-import { account, rateLimit, user } from './schema'
+import { account, user } from './schema'
 
 // Adresse de base des routes d'authentification, conforme à l'adresse locale par défaut.
 const AUTH = 'http://localhost:3000/api/auth'

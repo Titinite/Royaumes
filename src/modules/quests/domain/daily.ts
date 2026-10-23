@@ -21,6 +21,16 @@ export type Day = string
  */
 export const dayOf = (at: number): Day => new Date(at).toISOString().slice(0, 10)
 
+/** Durée de conservation des données des quêtes, en jours, jour courant compris. */
+export const RETENTION_DAYS = 7
+
+/**
+ * Premier jour dont les données sont conservées ; celles des jours antérieurs sont supprimées
+ * par la tâche quotidienne. Les jours au format AAAA-MM-JJ se comparent comme des textes.
+ */
+export const firstKeptDay = (now: number): Day =>
+  dayOf(now - (RETENTION_DAYS - 1) * 24 * 60 * 60_000)
+
 /**
  * Graine tirée d'un texte (hachage FNV-1a sur 32 bits) : un même texte donne toujours
  * la même graine.

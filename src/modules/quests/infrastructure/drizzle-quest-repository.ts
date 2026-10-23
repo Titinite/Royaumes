@@ -1,4 +1,4 @@
-import { and, eq } from 'drizzle-orm'
+import { and, eq, lt } from 'drizzle-orm'
 import type { Db } from '@/platform/db/client'
 import { enqueue } from '@/platform/outbox/outbox'
 import type { ProjectionRunner } from '@/platform/projection/projection'
@@ -63,6 +63,18 @@ export function createDrizzleQuestRepository(
         await enqueue(tx, [message])
         return true
       })
+    },
+
+    async removeBefore(day) {
+      const removedCounters = await db
+        .delete(counters)
+        .where(lt(counters.day, day))
+        .returning({ day: counters.day })
+      const removedClaims = await db
+        .delete(claims)
+        .where(lt(claims.day, day))
+        .returning({ day: claims.day })
+      return { counters: removedCounters.length, claims: removedClaims.length }
     },
   }
 }

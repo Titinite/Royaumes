@@ -25,8 +25,11 @@ export interface QuestsModuleDeps {
 export function createQuestsModule({ db, projections, dispatch, clock }: QuestsModuleDeps) {
   const repo = createDrizzleQuestRepository(db, projections)
   const service = createQuestsService(repo, { dispatch, clock })
+  // La tâche quotidienne est confiée à la racine de composition, qui la fait exécuter
+  // par la tâche planifiée de Vercel.
   return {
     api: createQuestsApi(service),
+    dailyTask: service.purge,
     personalData: createQuestsPersonalData(db),
   }
 }

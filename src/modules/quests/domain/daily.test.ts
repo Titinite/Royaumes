@@ -1,6 +1,15 @@
 import { describe, expect, it } from 'vitest'
 import { QUEST_KINDS, QUESTS, QUESTS_PER_DAY, type QuestKind } from './catalog'
-import { checkClaim, dailyQuests, dayOf, hasBadge, questBoard, rewardTransferId } from './daily'
+import {
+  checkClaim,
+  dailyQuests,
+  dayOf,
+  firstKeptDay,
+  hasBadge,
+  questBoard,
+  RETENTION_DAYS,
+  rewardTransferId,
+} from './daily'
 
 const DAY = '2026-10-23'
 const PLAYER = 'joueur-1'
@@ -152,5 +161,14 @@ describe('Quêtes - règle 9 : badge du jour', () => {
   it("refuse le badge tant qu'une quête du jour n'est pas terminée", () => {
     const { board } = boardWithFirstCompleted()
     expect(hasBadge(board)).toBe(false)
+  })
+})
+
+describe('Quêtes - durée de conservation', () => {
+  it('conserve les données des sept derniers jours, jour courant compris', () => {
+    expect(RETENTION_DAYS).toBe(7)
+    expect(firstKeptDay(Date.UTC(2026, 9, 23, 12))).toBe('2026-10-17')
+    // Les jours se comparent comme des textes : la veille du premier jour conservé est plus petite.
+    expect('2026-10-16' < firstKeptDay(Date.UTC(2026, 9, 23, 12))).toBe(true)
   })
 })

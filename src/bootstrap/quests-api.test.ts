@@ -2,7 +2,7 @@ import { sql } from 'drizzle-orm'
 import { describe, expect, it } from 'vitest'
 import type { QuestBoard } from '@/modules/quests/contracts'
 import { dailyQuests } from '@/modules/quests/domain/daily'
-import { createTestApi } from './testing'
+import { createTestApi, TEST_CRON_SECRET } from './testing'
 
 type TestApi = Awaited<ReturnType<typeof createTestApi>>
 
@@ -131,6 +131,31 @@ describe('API du module Quêtes - données personnelles', () => {
         sql`SELECT player_id FROM ${sql.raw(`quests.${table}`)} WHERE player_id = ${player}`,
       )
       expect((result as unknown as { rows: unknown[] }).rows).toEqual([])
+    }
+  })
+})
+
+describe('API du module Quêtes - tâche quotidienne', () => {
+  it('supprime les données de plus de sept jours, et conserve les plus récentes', async () => {
+    const api = await createTestApi()
+    // L'horloge de test est au 1er janvier 2026 : le premier jour conservé est le 26 décembre.
+    for (const day of ['2025-12-25', '2025-12-26']) {
+      await api.db.execute(
+        sql`INSERT INTO quests.counters (player_id, day, metric, value) VALUES ('alice', ${day}, 'upgrades', 1)`,
+      )
+      await api.db.execute(
+        sql`INSERT INTO quests.claims (player_id, day, kind, claimed_at) VALUES ('alice', ${day}, 'builder', 0)`,
+      )
+    }
+
+    const res = await api.api.request('/api/cron/daily', {
+      headers: { authorization: `Bearer ${TEST_CRON_SECRET}` },
+    })
+    expect((await res.json()).quests).toEqual({ ok: true, result: { counters: 1, claims: 1 } })
+
+    for (const table of ['counters', 'claims']) {
+      const result = await api.db.execute(sql`SELECT day FROM ${sql.raw(`quests.${table}`)}`)
+      expect((result as unknown as { rows: unknown[] }).rows).toEqual([{ day: '2025-12-26' }])
     }
   })
 })

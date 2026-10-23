@@ -29,4 +29,6 @@ export interface QuestRepository {
    * transaction. Renvoie false, sans rien enregistrer, si la quête a déjà été réclamée.
    */
   claim(claim: NewClaim, message: NewMessage): Promise<boolean>
+  /** Supprime les métriques et les réclamations des jours antérieurs à un jour ; renvoie leur nombre. */
+  removeBefore(day: Day): Promise<{ counters: number; claims: number }>
 }

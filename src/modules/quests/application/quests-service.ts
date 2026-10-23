@@ -3,6 +3,7 @@ import type { QuestBoard } from '../contracts'
 import {
   checkClaim,
   dayOf,
+  firstKeptDay,
   hasBadge,
   type QuestError,
   questBoard,
@@ -75,7 +76,13 @@ export function createQuestsService(
       .map(([playerId]) => playerId)
   }
 
-  return { board, claim, champions }
+  /**
+   * Tâche quotidienne : applique la durée de conservation, en supprimant la progression et
+   * les réclamations des jours qui ne sont plus utiles. Renvoie le nombre de lignes supprimées.
+   */
+  const purge = () => repo.removeBefore(firstKeptDay(clock()))
+
+  return { board, claim, champions, purge }
 }
 
 export type QuestsService = ReturnType<typeof createQuestsService>

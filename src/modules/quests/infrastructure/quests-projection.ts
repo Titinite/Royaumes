@@ -88,6 +88,8 @@ export const questsProjection: Projection = {
         await increment(tx, event, idFrom(event, VILLAGE_CHANNEL_PREFIX), 'upgrades')
         return
 
+      // L'hôte est le premier participant ; les compagnons ne sont jamais enregistrés.
+      // DETTE TECHNIQUE : une expédition jamais terminée laisse ses participants (DT-013).
       case 'GameCreated': {
         // L'hôte est le premier participant ; les compagnons ne sont jamais enregistrés.
         const data = event.data as unknown as GameCreatedData

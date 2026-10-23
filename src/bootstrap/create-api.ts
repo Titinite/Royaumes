@@ -168,6 +168,8 @@ export function createApi({
         },
         // Durée de conservation des données de la Taverne.
         tavern: tavern.dailyTask,
+        // Durée de conservation des données des Quêtes.
+        quests: quests.dailyTask,
         // Relais du flux publié par le Village extrait, s'il y en a un.
         ...(remoteRealm ? { realm: remoteRealm.dailyTask } : {}),
       },
