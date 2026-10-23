@@ -1,6 +1,7 @@
 import { Hono } from 'hono'
 import { createDungeonModule } from '@/modules/dungeon'
 import { createMarketModule } from '@/modules/market'
+import { createQuestsModule } from '@/modules/quests'
 import { createRankingModule } from '@/modules/ranking'
 import { createRealmModule, createRemoteRealmModule } from '@/modules/realm'
 import { createSystemModule } from '@/modules/system'
@@ -87,6 +88,15 @@ export function createApi({
 
   const tavern = createTavernModule({ db, clock })
 
+  // Les Quêtes lisent le journal des autres modules, et demandent au Village, par la boîte
+  // d'envoi, de verser les récompenses : la distribution suit chaque réclamation.
+  const quests = createQuestsModule({
+    db,
+    projections,
+    dispatch: () => dispatcher.dispatch(),
+    clock,
+  })
+
   // Droits des joueurs : chaque module fournit ses données personnelles. L'identité vient
   // en dernier : tant qu'elle n'est pas effacée, le joueur peut relancer un effacement interrompu.
   const privacy = createPrivacyService(
@@ -97,6 +107,7 @@ export function createApi({
       market.personalData,
       ranking.personalData,
       tavern.personalData,
+      quests.personalData,
       createIdentityPersonalData(db),
     ],
     clock,
@@ -175,6 +186,8 @@ export function createApi({
   app.use('/ranking/*', requireUser(auth))
   app.use('/market/*', requireUser(auth))
   app.use('/tavern/*', requireUser(auth))
+  app.use('/quests', requireUser(auth))
+  app.use('/quests/*', requireUser(auth))
   app.use('/account', requireUser(auth))
   app.use('/account/*', requireUser(auth))
   app.use('/stream/*', requireUser(auth))
@@ -188,6 +201,7 @@ export function createApi({
     .route('/ranking', ranking.api)
     .route('/market', market.api)
     .route('/tavern', tavern.api)
+    .route('/quests', quests.api)
     .route('/account', createPrivacyApi(privacy))
     .route('/stream', createRealtimeApi({ store, policies, ...realtime }))
 }
