@@ -15,3 +15,5 @@ un nouvel ADR est rédigé et l'ancien prend le statut « remplacé ».
 | [07](07-saga-boite-envoi.md) | Saga orchestrée et boîte d'envoi transactionnelle pour les opérations entre modules | Accepté |
 | [08](08-donnees-personnelles.md) | Stockage classique pour la Taverne, et réécriture ciblée du journal pour l'effacement | Accepté |
 | [09](09-extraction-village.md) | Extraction du Village en service autonome, préparée mais non déployée | Accepté |
+| [10](10-quetes-stockage.md) | Module Quêtes : tables classiques tenues par une projection, et tirage déterministe | Accepté |
+| [11](11-quetes-communication.md) | Communication des Quêtes : lecture du langage publié, et versement par la boîte d'envoi | Accepté |
