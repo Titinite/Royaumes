@@ -57,7 +57,14 @@ describe('Projection des quêtes - règle 4 : seulement le joueur, seulement le 
     expect(await countersOf('bob')).toEqual({})
   })
 
-  it("compte l'action pour le jour où elle a eu lieu, et non pour le jour de sa lecture", async () => {
+  it("compte l'action pour le jour indiqué par sa date « at », celle de l'horloge du module", async () => {
+    const yesterday = Date.now() - 86_400_000
+    await store.append('village-alice', 0, [{ type: 'BuildingUpgraded', data: { at: yesterday } }])
+    expect(await countersOf('alice')).toEqual({})
+    expect(await countersOf('alice', dayOf(yesterday))).toEqual({ upgrades: 1 })
+  })
+
+  it("à défaut de date « at », compte l'action pour le jour de son enregistrement, et non pour le jour de sa lecture", async () => {
     await store.append('village-alice', 0, [upgraded])
     // L'action est datée de la veille : elle ne compte pas pour aujourd'hui.
     await db.execute(sql`UPDATE platform.events SET occurred_at = now() - interval '1 day'`)

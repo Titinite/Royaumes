@@ -33,12 +33,20 @@ interface OfferAcceptedData {
 const idFrom = (event: StoredEvent, prefix: string) => event.stream.slice(prefix.length)
 
 /**
- * Ajoute une unité à la métrique d'un joueur, pour le jour où l'événement a été enregistré
- * (règle 4) : une action compte pour le jour où elle a eu lieu, et non pour le jour où
- * la projection la lit.
+ * Instant de l'action : la date « at » que chaque module inscrit dans ses événements, selon
+ * sa propre horloge ; à défaut, la date d'enregistrement de l'événement dans le journal.
+ */
+function actionTime(event: StoredEvent): number {
+  const at = event.data.at
+  return typeof at === 'number' ? at : event.occurredAt.getTime()
+}
+
+/**
+ * Ajoute une unité à la métrique d'un joueur, pour le jour où l'action a eu lieu (règle 4),
+ * et non pour le jour où la projection la lit : une reconstruction donne le même résultat.
  */
 async function increment(tx: DbTransaction, event: StoredEvent, playerId: string, metric: Metric) {
-  const day = dayOf(event.occurredAt.getTime())
+  const day = dayOf(actionTime(event))
   await tx
     .insert(counters)
     .values({ playerId, day, metric, value: 1 })

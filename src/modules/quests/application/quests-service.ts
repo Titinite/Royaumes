@@ -1,22 +1,14 @@
 import { REALM_TOPICS, type TransferRequest } from '@/modules/realm/contracts'
+import type { QuestBoard } from '../contracts'
 import {
   checkClaim,
   dayOf,
   hasBadge,
   type QuestError,
-  type QuestView,
   questBoard,
   rewardTransferId,
 } from '../domain/daily'
 import type { QuestRepository } from './quest-repository'
-
-/** Tableau des quêtes du jour d'un joueur, renvoyé par l'API. */
-export interface QuestBoard {
-  day: string
-  quests: QuestView[]
-  /** Vrai si les quatre quêtes du jour sont terminées (règle 9). */
-  badge: boolean
-}
 
 export type ClaimResult = { ok: true; board: QuestBoard } | { ok: false; error: QuestError }
 
