@@ -31,6 +31,8 @@ export const theme: Record<string, Look> = {
   ranking: { glyph: '🏆', label: 'Classement' },
   market: { glyph: '⚖️', label: 'Marché' },
   tavern: { glyph: '🍺', label: 'Taverne' },
+  quests: { glyph: '📜', label: 'Quêtes' },
+  badge: { glyph: '🎖️', label: 'Quêtes du jour accomplies' },
 }
 
 /** Apparence d'une entité ; une apparence neutre si l'entité n'est pas décrite. */

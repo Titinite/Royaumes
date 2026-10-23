@@ -19,6 +19,11 @@ export interface QuestBoard {
   badge: boolean
 }
 
+/** Joueurs qui ont obtenu le badge du jour, renvoyés par GET /api/quests/champions. */
+export interface ChampionList {
+  playerIds: string[]
+}
+
 /** Paramètre de la réclamation : le rang de la quête dans le tableau du jour. */
 export const ClaimParams = z.object({
   slot: z.coerce

@@ -168,3 +168,10 @@ input.amount { width: 5em; }
 
 /* Mes données : un lien présenté comme un bouton */
 a.button { display: inline-block; padding: 8px 14px; border-radius: 8px; background: var(--accent); color: var(--accent-ink); text-decoration: none; }
+
+/* Quêtes */
+.quests { list-style: none; padding: 0; margin: 0; display: grid; gap: 12px; }
+.quest { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+.quest + .quest { padding-top: 12px; border-top: 1px solid var(--line); }
+.quest progress { width: 160px; margin-top: 6px; accent-color: var(--accent); }
+.quest[data-done] progress { accent-color: var(--ok); }

@@ -1,6 +1,7 @@
 'use client'
 import { hc } from 'hono/client'
 import { type FormEvent, useCallback, useEffect, useState } from 'react'
+import { QuestBadge, useChampions } from '@/modules/quests/ui'
 import { useChannel } from '@/platform/realtime/use-channel'
 import { Entity } from '@/ui/entity'
 import type { TavernApi } from './api'
@@ -66,6 +67,9 @@ export function TavernScreen({ userId }: { userId: string }) {
   const [players, setPlayers] = useState<PresentPlayer[]>([])
   const [draft, setDraft] = useState('')
   const [error, setError] = useState<string | null>(null)
+
+  // Joueurs qui ont accompli leurs quêtes du jour, relus à chaque nouveau message.
+  const champions = useChampions(messages.length)
 
   // REQUÊTE : les derniers messages.
   const refresh = useCallback(async () => {
@@ -137,7 +141,8 @@ export function TavernScreen({ userId }: { userId: string }) {
             {messages.map((message) => (
               <li key={message.id} data-mine={message.authorId === userId || undefined}>
                 <span className="muted">{timeOf(message.postedAt)}</span>{' '}
-                <strong>{message.authorName}</strong> {message.body}
+                <strong>{message.authorName}</strong>
+                {champions.has(message.authorId) && <QuestBadge />} {message.body}
               </li>
             ))}
           </ul>
