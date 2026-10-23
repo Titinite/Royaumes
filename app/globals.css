@@ -175,3 +175,15 @@ a.button { display: inline-block; padding: 8px 14px; border-radius: 8px; backgro
 .quest + .quest { padding-top: 12px; border-top: 1px solid var(--line); }
 .quest progress { width: 160px; margin-top: 6px; accent-color: var(--accent); }
 .quest[data-done] progress { accent-color: var(--ok); }
+
+/* Hauts faits */
+.achievements { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; }
+.achievement { display: flex; gap: 12px; align-items: center; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--line); }
+.achievement > .entity { font-size: 1.6rem; }
+.achievement:not([data-done]) { opacity: 0.6; }
+.achievement[data-done] { background: color-mix(in srgb, var(--accent) 8%, transparent); }
+
+/* Notifications des hauts faits */
+.toasts { position: fixed; right: 16px; bottom: 16px; z-index: 20; display: grid; gap: 8px; }
+.toast { background: var(--panel); border: 1px solid var(--accent); border-radius: var(--radius); padding: 10px 14px; box-shadow: var(--shadow); animation: toast-in 0.25s ease-out; }
+@keyframes toast-in { from { transform: translateY(12px); opacity: 0; } to { transform: none; opacity: 1; } }

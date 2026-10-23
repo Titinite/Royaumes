@@ -33,6 +33,8 @@ export const theme: Record<string, Look> = {
   tavern: { glyph: '🍺', label: 'Taverne' },
   quests: { glyph: '📜', label: 'Quêtes' },
   badge: { glyph: '🎖️', label: 'Quêtes du jour accomplies' },
+  achievements: { glyph: '🏅', label: 'Hauts faits' },
+  locked: { glyph: '🔒', label: 'Non obtenu' },
 }
 
 /** Apparence d'une entité ; une apparence neutre si l'entité n'est pas décrite. */

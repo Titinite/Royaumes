@@ -2,6 +2,7 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import type { ReactNode } from 'react'
+import { AchievementToasts } from '@/modules/achievements/ui'
 import { authClient } from '@/platform/auth/client'
 import { Entity } from './entity'
 
@@ -13,10 +14,22 @@ export const NAV = [
   { href: '/market', kind: 'market', label: 'Marché' },
   { href: '/tavern', kind: 'tavern', label: 'Taverne' },
   { href: '/quests', kind: 'quests', label: 'Quêtes' },
+  { href: '/achievements', kind: 'achievements', label: 'Hauts faits' },
 ]
 
-/** Cadre de l'espace de jeu : navigation, nom du joueur, accès à ses données et déconnexion. */
-export function AppShell({ userName, children }: { userName: string; children: ReactNode }) {
+/**
+ * Cadre de l'espace de jeu : navigation, nom du joueur, accès à ses données, déconnexion,
+ * et notifications des hauts faits débloqués, visibles sur chaque page.
+ */
+export function AppShell({
+  userId,
+  userName,
+  children,
+}: {
+  userId: string
+  userName: string
+  children: ReactNode
+}) {
   const pathname = usePathname()
 
   async function signOut() {
@@ -49,6 +62,7 @@ export function AppShell({ userName, children }: { userName: string; children: R
         </div>
       </nav>
       {children}
+      <AchievementToasts userId={userId} />
     </>
   )
 }

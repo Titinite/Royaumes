@@ -1,4 +1,5 @@
 import { Hono } from 'hono'
+import { createAchievementsModule } from '@/modules/achievements'
 import { createDungeonModule } from '@/modules/dungeon'
 import { createMarketModule } from '@/modules/market'
 import { createQuestsModule } from '@/modules/quests'
@@ -97,6 +98,9 @@ export function createApi({
     clock,
   })
 
+  // Les Hauts faits lisent le journal des autres modules ; ils n'écrivent dans aucun d'eux.
+  const achievements = createAchievementsModule({ db, projections })
+
   // Droits des joueurs : chaque module fournit ses données personnelles. L'identité vient
   // en dernier : tant qu'elle n'est pas effacée, le joueur peut relancer un effacement interrompu.
   const privacy = createPrivacyService(
@@ -108,6 +112,7 @@ export function createApi({
       ranking.personalData,
       tavern.personalData,
       quests.personalData,
+      achievements.personalData,
       createIdentityPersonalData(db),
     ],
     clock,
@@ -124,6 +129,7 @@ export function createApi({
     ranking.channelPolicy,
     market.channelPolicy,
     tavern.channelPolicy,
+    achievements.channelPolicy,
   ]
 
   // 2. Application principale : toutes ses routes sont préfixées par /api.
@@ -190,6 +196,8 @@ export function createApi({
   app.use('/tavern/*', requireUser(auth))
   app.use('/quests', requireUser(auth))
   app.use('/quests/*', requireUser(auth))
+  app.use('/achievements', requireUser(auth))
+  app.use('/achievements/*', requireUser(auth))
   app.use('/account', requireUser(auth))
   app.use('/account/*', requireUser(auth))
   app.use('/stream/*', requireUser(auth))
@@ -204,6 +212,7 @@ export function createApi({
     .route('/market', market.api)
     .route('/tavern', tavern.api)
     .route('/quests', quests.api)
+    .route('/achievements', achievements.api)
     .route('/account', createPrivacyApi(privacy))
     .route('/stream', createRealtimeApi({ store, policies, ...realtime }))
 }
