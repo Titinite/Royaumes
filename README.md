@@ -82,6 +82,7 @@ Un module n'est accessible depuis l'extérieur que par ses entrées publiques : 
 | `market` | Marché : échanges de ressources entre joueurs, par une saga orchestrée | `/api/market` |
 | `tavern` | Taverne : salon de discussion commun et présence des joueurs, sans Event Sourcing | `/api/tavern` |
 | `quests` | Quêtes : 4 objectifs quotidiens réalisés dans les autres modules, récompenses versées au Village, badge dans la Taverne | `/api/quests` |
+| `achievements` | Hauts faits : douze distinctions permanentes, débloquées par les actions dans les autres modules, notifiées en temps réel | `/api/achievements` |
 
 ## Temps réel
 
@@ -106,8 +107,9 @@ Un flux se ferme de lui-même au bout de 240 secondes, et le navigateur s'y reco
 sans perte d'événement. En développement, la variable `STREAM_MAX_SECONDS` permet de
 raccourcir cette durée pour observer la reconnexion.
 
-Le module Quêtes n'a pas de canal propre : la progression est relue à l'ouverture de l'écran
-des quêtes, et après chaque réclamation.
+Le module Quêtes n'a pas de canal propre : la progression est relue à l'ouverture de l'écran des
+quêtes, et après chaque réclamation. Le canal `achievements-<joueur>`, réservé à son propriétaire,
+annonce chaque haut fait débloqué ; l'interface l'affiche en notification, sur toutes les pages.
 
 ## Échanges entre modules
 
@@ -153,6 +155,7 @@ Les messages de la Taverne sont conservés trente jours, et la présence d'un jo
 minutes après son dernier signal. La progression des quêtes et les récompenses réclamées
 sont conservées sept jours. Ces durées sont appliquées chaque jour par la tâche planifiée
 `/api/cron/daily` ; celles de la Taverne le sont aussi à chaque lecture.
+Les hauts faits sont conservés tant que le compte existe.
 
 ## Base de données
 
@@ -177,6 +180,8 @@ sous une charge de vingt connexions simultanées, et confronte les résultats au
 performance de `perf/budget.json` : 99 % des lectures servies en moins de 500 ms, sans
 erreur. Il est exécuté sur la construction de production, base recréée, avec
 `AUTH_RATE_LIMIT=off`, avant chaque publication qui touche aux performances.
+Les scénarios couvrent aussi les lectures des Quêtes et des Hauts faits ; les résultats au rendu
+sont dans `perf/eval.json`.
 
 ## Déploiement
 
@@ -198,10 +203,12 @@ sans la première ; sans la seconde, la route des tâches quotidiennes reste fer
 - [Revue de sécurité du Donjon](docs/qualite/revue-securite-donjon.md)
 - [Revue de sécurité du Marché](docs/qualite/revue-securite-marche.md)
 - [Revue de sécurité des Quêtes](docs/qualite/revue-securite-quests.md)
+- [Revue de sécurité des Hauts faits](docs/qualite/revue-securite-achievements.md)
 - [Registre des traitements](docs/rgpd/registre-traitements.md)
 - [Revue de conformité au RGPD](docs/rgpd/revue-conformite.md)
 - [Bilan technique](docs/bilan-technique.md)
-- [Fiches de cadrage de l'évaluation](docs/evaluation/fiche-cadrage-quests.md)
+- [Fiche de cadrage des quêtes (évaluation)](docs/evaluation/fiche-cadrage-quests.md)
+- [Fiche de cadrage des Hauts faits (évaluation)](docs/evaluation/fiche-cadrage-achievements.md)
 - [Document de rendu](docs/evaluation/rendu.md)
 
 ## Conventions
@@ -242,3 +249,7 @@ du jour est recalculé à chaque ouverture de la Taverne pour tous les joueurs a
 Une récompense réclamée est versée de manière asynchrone : si le Village échoue, elle n'arrive
 qu'au nouvel essai de la boîte d'envoi. Les participants d'une expédition jamais terminée
 restent dans une table de travail des Quêtes (dette DT-011 à DT-013).
+
+Chaque joueur connecté déclenche, par son canal des hauts faits, un rattrapage de la projection deux
+fois par seconde. Un haut fait attribué par erreur n'est pas retiré par une reconstruction (dette
+DT-014 et DT-015, ADR 12).

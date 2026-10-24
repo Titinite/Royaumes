@@ -32,6 +32,7 @@ export function createAchievementsModule({ db, projections }: AchievementsModule
   // Canal des hauts faits : un canal par joueur, réservé à ce joueur. Il ne lit pas le journal,
   // mais la table des hauts faits débloqués, après avoir rattrapé la projection : un haut fait
   // débloqué par une action dans un autre module est ainsi annoncé sans autre lecture.
+  // DETTE TECHNIQUE : chaque abonné déclenche ce rattrapage à chaque lecture du flux (DT-015).
   const channelPolicy: ChannelPolicy = {
     prefix: ACHIEVEMENTS_CHANNEL_PREFIX,
     canSubscribe: (channel, userId) => channel === achievementsChannel(userId),

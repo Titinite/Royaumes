@@ -12,7 +12,7 @@ dans le même commit que la modification qu'ils décrivent.
 ```mermaid
 flowchart TB
   joueur["Joueur<br/>[Personne]<br/>Joue depuis un navigateur,<br/>sur ordinateur ou sur téléphone"]
-  royaumes["Royaumes<br/>[Système logiciel]<br/>Jeu web multijoueur : village, donjon,<br/>classement, marché, taverne et quêtes"]
+  royaumes["Royaumes<br/>[Système logiciel]<br/>Jeu web multijoueur : village, donjon,<br/>classement, marché, taverne,<br/>quêtes et hauts faits"]
   joueur -->|"Gère son village, joue avec les autres joueurs,<br/>reçoit les changements en direct (HTTPS)"| royaumes
 ```
 
@@ -28,7 +28,7 @@ flowchart TB
   subgraph royaumes["Système Royaumes"]
     web["Interface web<br/>[Conteneur : React, dans le navigateur]<br/>Pages du jeu et page de connexion"]
     serveur["Application serveur<br/>[Conteneur : Next.js et Hono, fonctions Vercel, Francfort]<br/>Rendu des pages, API JSON,<br/>authentification, flux temps réel"]
-    base[("Base de données<br/>[Conteneur : PostgreSQL, Neon, Francfort]<br/>Schéma platform : journal, points de reprise,<br/>boîte d'envoi, registre des effacements<br/>Schéma identity : comptes et sessions<br/>Schémas ranking, dungeon et market :<br/>modèles de lecture<br/>Schéma tavern : messages et présence<br/>Schéma quests : progression du jour<br/>et récompenses réclamées")]")]
+    base[("Base de données<br/>[Conteneur : PostgreSQL, Neon, Francfort]<br/>Schéma platform : journal, points de reprise,<br/>boîte d'envoi, registre des effacements<br/>Schéma identity : comptes et sessions<br/>Schémas ranking, dungeon et market :<br/>modèles de lecture<br/>Schéma tavern : messages et présence<br/>Schéma quests : progression du jour<br/>et récompenses réclamées<br/>Schéma achievements : métriques cumulées<br/>et hauts faits débloqués")]
   end
   joueur -->|"Utilise"| web
   web -->|"Pages, appels de l'API avec le cookie de session<br/>(HTTPS, JSON)"| serveur
@@ -46,6 +46,8 @@ Le journal d'événements est la seule source de vérité des modules Village, D
 La Taverne n'enregistre pas d'événements : ses tables sont sa propre source de vérité (ADR 0008).
 Les Quêtes n'enregistrent pas non plus d'événements : la progression des joueurs est un modèle de lecture tenu par une projection, et seules les récompenses réclamées sont propres au module.
 Toutes ces données sont supprimées au bout de sept jours (ADR 0010).
+Les Hauts faits non plus : leurs métriques sont tenues par une projection, et les hauts faits
+débloqués sont conservés tant que le compte existe, y compris lors d'une reconstruction (ADR 0012).
 Les tables des schémas `ranking`, `dungeon` et `market` sont des modèles de lecture, dérivés du journal par des projections : elles peuvent
 être vidées puis reconstruites à tout moment, sans perte d'information.
 
@@ -70,6 +72,7 @@ flowchart TB
     market["market<br/>Marché : orchestrateur de la saga,<br/>projection des offres, API, canal global"]
     tavern["tavern<br/>Taverne : messages et présence<br/>en tables, API, canal à source propre"]
     quests["quests<br/>Quêtes : tirage et règles du jour,<br/>projection des actions, réclamation,<br/>API, tâche quotidienne"]
+    achievements["achievements<br/>Hauts faits : seuils du domaine,<br/>projection des actions, API,<br/>canal par joueur"]
   end
   subgraph platform["src/platform"]
     auth["auth<br/>Port AuthPort,<br/>adaptateur Better Auth"]
@@ -86,16 +89,18 @@ flowchart TB
   route --> server
   pages --> server
   server --> createapi
-  createapi --> system & realm & dungeon & ranking & market & tavern & quests & auth & http & realtime & projection & outbox & privacy & cron
+  createapi --> system & realm & dungeon & ranking & market & tavern & quests & achievements & auth & http & realtime & projection & outbox & privacy & cron
   realm --> store & realtime & http & outbox
   market --> store & projection & realtime & http & outbox
   dungeon --> store & projection & realtime & http
   ranking --> projection & realtime & http
   tavern --> realtime & http & db
-  realm & dungeon & market & ranking & tavern & quests --> privacy
+  realm & dungeon & market & ranking & tavern & quests & achievements --> privacy
   quests --> projection & outbox & http & db
   quests -. "contrats (langage publié)" .-> realm & dungeon & market
   tavern -. "ui.tsx (badge)" .-> quests
+  achievements --> projection & realtime & http & db
+  achievements -. "contrats (langage publié)" .-> realm & dungeon & market
   privacy --> store
   auth --> privacy
   realtime --> store & http
@@ -201,6 +206,12 @@ sequenceDiagram
 
 Si le Village échoue, la réclamation reste enregistrée et le message reste dans la boîte
 d'envoi : il est retenté par le distributeur, au plus tard par la tâche quotidienne.
+
+Le module `achievements` lit le même langage publié que les Quêtes, mais n'écrit dans aucun autre
+module (ADR 0012). Il possède un canal temps réel par joueur, `achievements-<joueur>`, alimenté par
+sa table des hauts faits débloqués : la plateforme transmet pour cela le nom du canal à la source
+fournie par le module. Les notifications sont affichées par le cadre de l'espace de jeu
+(`src/ui/app-shell.tsx`), au moyen de l'entrée publique `achievements/ui.tsx`.
 
 ## Extraction du Village
 

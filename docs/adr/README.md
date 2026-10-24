@@ -17,3 +17,4 @@ un nouvel ADR est rédigé et l'ancien prend le statut « remplacé ».
 | [09](09-extraction-village.md) | Extraction du Village en service autonome, préparée mais non déployée | Accepté |
 | [10](10-quetes-stockage.md) | Module Quêtes : tables classiques tenues par une projection, et tirage déterministe | Accepté |
 | [11](11-quetes-communication.md) | Communication des Quêtes : lecture du langage publié, et versement par la boîte d'envoi | Accepté |
+| [12](12-hauts-faits.md) | Hauts faits : projection du journal, déblocages permanents, canal temps réel par joueur | Accepté |

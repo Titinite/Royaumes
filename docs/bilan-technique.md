@@ -12,11 +12,11 @@ revues. Il s'adresse à la personne qui reprendrait le projet.
 
 | Élément | Valeur |
 | --- | --- |
-| Modules métier | 7 |
+| Modules métier | 8 |
 | Briques de la plateforme | 9 |
-| Lignes de code, hors tests | 8741 |
-| Fichiers de test, nombre de tests | 38, 278 |
-| Commits | 100 |
+| Lignes de code, hors tests | 9466 |
+| Fichiers de test, nombre de tests | 42, 299 |
+| Commits | 101 |
 | Hébergement | Vercel (Francfort), base Neon (Francfort) |
 
 | Module | Stockage | Lignes, hors tests |
@@ -27,6 +27,7 @@ revues. Il s'adresse à la personne qui reprendrait le projet.
 | `ranking` | Projection du journal | 459 |
 | `tavern` | Tables ordinaires | 678 |
 | `quests` | Tables ordinaires tenues par une projection du journal, boîte d'envoi | 918 |
+| `achievements` | Tables ordinaires tenues par une projection du journal, canal par joueur | 725 |
 | `system` | Aucun | 73 |
 
 ## 2. Les décisions d'architecture
@@ -44,13 +45,14 @@ revues. Il s'adresse à la personne qui reprendrait le projet.
 | 09 | Extraction du Village, préparée mais non déployée | Exécution du Village dans un service autonome, avec sa propre base et ses tests de contrat | Les frontières sont éprouvées sans déploiement en production. En contrepartie, deux modes d’exécution, une synchronisation différée des événements et des dettes techniques doivent être maintenus |
 | 10 | Quêtes : tables classiques tenues par une projection, tirage déterministe | Reconstruction de la projection, purge quotidienne, réclamations simultanées | Aucune écriture pour attribuer les quêtes, et une conservation limitée simple à appliquer. La reconstruction ne doit jamais vider les réclamations, ce qu'un test protège |
 | 11 | Quêtes : lecture du langage publié, versement par la boîte d'envoi | Versement effectif au Village dans les tests d'API, doublons ignorés | Aucun module existant n'a été modifié côté serveur. La projection dépend de la forme des événements des autres modules, et `enqueue` étend la plateforme |
+| 12 | Hauts faits : projection du journal, déblocages permanents, canal temps réel par joueur | Reconstruction de la projection (dates conservées), canal refusé à un autre joueur, test de charge | Aucun module existant n'a été modifié côté serveur, et les hauts faits survivent à une reconstruction. En contrepartie, chaque joueur connecté déclenche un rattrapage de la projection deux fois par seconde, et la plateforme a dû transmettre le nom du canal à la source |
 
 ## 3. La qualité
 
 | Caractéristique | Indicateur | Valeur | Appréciation |
 | --- | --- | --- | --- |
 | Adéquation fonctionnelle | Tests réussis ; couverture des domaines | 278 tests (232 à `td11-fin`), 75,83 % de couverture des lignes (75 % à `td11-fin`) ; domaine et application des Quêtes couverts à 100 % | Chaque règle de la fiche de cadrage des Quêtes est vérifiée par un test. L'écran des Quêtes, comme les autres écrans, n'est pas testé automatiquement |
-| Efficacité des performances | Débit et p99 des lectures ; respect du budget | débit compris entre 91 et 226 requêtes/s, latence p50 entre 73 et 224 ms, latence p99 entre 230 et 481 ms, aucune erreur observée | la Taverne présente le meilleur débit et les latences les plus faibles. Le Marché présente le débit le plus faible et une latence p50 plus élevée. Aucun échec n’a été observé pendant les tests, mais ces résultats ne garantissent pas les mêmes performances en production |
+| Efficacité des performances | Débit et p99 des lectures ; respect du budget | 8 scénarios, dont 3 pour les nouveaux modules ; débit entre 106 et 208 requêtes/s ; p99 entre 212 et 381 ms (maximum : Hauts faits), pour un budget de 500 ms ; aucune erreur | Toutes les lectures respectent le budget. Les Hauts faits et les Quêtes sont les lectures les plus lentes, car elles rattrapent leur projection avant de répondre. Ces mesures locales ne garantissent pas les mêmes performances en production |
 | Fiabilité | Tests de concurrence, de reprise et d'idempotence ; messages abandonnés | 0 | La boîte d’envoi et la saga prévoient des mécanismes de reprise. Leur fiabilité dépend des tests de panne, de la gestion des doublons et du suivi des messages en échec |
 | Sécurité | Exigences des revues de sécurité | À reprendre des comptes rendus | Les contrôles permettent d’identifier les faiblesses. Les actions non résolues doivent rester suivies dans la dette technique |
 | Maintenabilité | Règles d'architecture ; fonctions d'aptitude ; couverture | 0 violation (comme à `td11-fin`) ; 2 fonctions d'aptitude respectées sans modification ; 75,83 % de couverture des lignes | Le module Quêtes respecte les frontières : il n'utilise les autres modules que par leurs contrats et leur `ui.tsx`. L'interface reste sans tests automatiques |
@@ -79,8 +81,9 @@ récompenses ; DT-012 est la première à traiter si l'activité augmente.
 | Sécurité de l'authentification | 16 renseignées, 1 statut manquant | 11 explicitement conformes | 3 non conformes (S4, S5, S7), 1 risque accepté (S9) | Vérifier HttpOnly et SameSite, corriger S7, compléter S11 |
 | Sécurité du Donjon | 14 | 12 | 2 risques acceptés (D10, D14) | Aucun défaut explicitement déclaré non conforme dans la revue |
 | Sécurité du Marché | 10 | 10 | 0 | Aucune action corrective explicitement identifiée dans la revue |
-| Conformité au RGPD | 10 | 8 | 1 non-conformité (R9), 1 risque accepté (R10) | Corriger la journalisation et réévaluer le risque de réidentification |
 | Sécurité des Quêtes | 13 | 11 | 2 risques acceptés (Q10, Q13) | Enregistrer le badge à son obtention si l'activité augmente (DT-012) |
+| Sécurité des Succès | 11 | 10 | 1 risque accepté (H13) | Déclencher le rattrapage une seule fois pour tous les abonnés si le nombre de joueurs connectés augmente (DT-015) |
+| Conformité au RGPD | 10 | 8 | 1 non-conformité (R9), 1 risque accepté (R10) | Corriger la journalisation et réévaluer le risque de réidentification |
 
 ## 6. Risques et recommandations
 
