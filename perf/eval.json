@@ -1,0 +1,58 @@
+[
+  {
+    "scenario": "Village",
+    "requestsPerSecond": 248,
+    "p50": 77,
+    "p99": 137,
+    "errors": 0
+  },
+  {
+    "scenario": "Expéditions ouvertes",
+    "requestsPerSecond": 200,
+    "p50": 95,
+    "p99": 171,
+    "errors": 0
+  },
+  {
+    "scenario": "Classement",
+    "requestsPerSecond": 172,
+    "p50": 105,
+    "p99": 235,
+    "errors": 0
+  },
+  {
+    "scenario": "Marché",
+    "requestsPerSecond": 150,
+    "p50": 125,
+    "p99": 205,
+    "errors": 0
+  },
+  {
+    "scenario": "Taverne",
+    "requestsPerSecond": 204,
+    "p50": 89,
+    "p99": 217,
+    "errors": 0
+  },
+  {
+    "scenario": "Quêtes",
+    "requestsPerSecond": 123,
+    "p50": 158,
+    "p99": 230,
+    "errors": 0
+  },
+  {
+    "scenario": "Champions des quêtes",
+    "requestsPerSecond": 150,
+    "p50": 120,
+    "p99": 212,
+    "errors": 0
+  },
+  {
+    "scenario": "Hauts faits",
+    "requestsPerSecond": 85,
+    "p50": 227,
+    "p99": 381,
+    "errors": 0
+  }
+]
