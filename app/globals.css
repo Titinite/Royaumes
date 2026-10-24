@@ -88,19 +88,139 @@ input, select {
 }
 input:focus { border-color: var(--accent); }
 
-/* Écran du Village. */
-.stock { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
-.stock div {
-  padding: 10px 12px;
-  border-radius: 10px;
-  background: color-mix(in srgb, var(--accent) 7%, transparent);
-  font-size: 1.3rem;
-  font-variant-numeric: tabular-nums;
+/* Écran du Village : bande des ressources, scène illustrée et panneau d'un bâtiment. */
+.hud { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 12px; }
+.hud-item {
+  display: flex; gap: 10px; align-items: center;
+  background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius);
+  padding: 8px 12px; box-shadow: var(--shadow);
 }
-.stock small { display: block; font-size: 0.8rem; color: var(--muted); }
-@media (max-width: 520px) { .stock { grid-template-columns: repeat(2, 1fr); } }
-.buildings { display: grid; gap: 12px; }
-.building { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+.hud-item strong { display: block; font-size: 1.25rem; font-variant-numeric: tabular-nums; }
+.hud-item small { color: var(--muted); font-size: 0.8rem; }
+@media (max-width: 560px) { .hud { grid-template-columns: repeat(2, 1fr); } }
+.game-icon { flex: none; vertical-align: -0.2em; }
+.game-icon-wood { color: #9a6332; }
+.game-icon-stone { color: #7e838a; }
+.game-icon-gold { color: #c9a227; }
+.game-icon-wheat { color: #d4a72c; }
+.cost { display: inline-flex; gap: 12px; align-items: center; }
+.hint { font-size: 0.85rem; margin-top: 8px; }
+
+/* Scène du village. Ses couleurs sont celles du jour ; le thème sombre en fait une scène de nuit. */
+:root {
+  --v-sky1: #bfe0ee; --v-sky2: #f4ead6; --v-far: #b9c9a6; --v-hill: #9cc27a; --v-ground: #a9cf80;
+  --v-path: #e6cf9f; --v-water: #8fc3dd; --v-wood: #9a6332; --v-roof: #b4553a; --v-stone: #a9adb3;
+  --v-stone-dark: #7e838a; --v-wall: #cfd2d6; --v-field: #e8c25a; --v-leaf: #5f9a4e;
+  --v-leaf2: #4d8640; --v-window: #5b4630; --v-door: #5b4630; --v-glow: transparent;
+  --v-label: #fffaf0; --v-label-ink: #2b2118;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --v-sky1: #1b2340; --v-sky2: #3a3550; --v-far: #2c3a3f; --v-hill: #2f4a33; --v-ground: #3d5c3f;
+    --v-path: #6b5a44; --v-water: #2d4a6a; --v-wood: #6e4a2a; --v-roof: #7c3b2a; --v-stone: #6f7378;
+    --v-stone-dark: #4c4f55; --v-wall: #8a8f96; --v-field: #8c7a3a; --v-leaf: #2e5a3a;
+    --v-leaf2: #254a30; --v-window: #ffd27a; --v-door: #2a2420; --v-glow: #ffd27a33;
+    --v-label: #241e18; --v-label-ink: #f2e8da;
+  }
+}
+.village-stage {
+  position: relative; margin-top: 12px; border: 1px solid var(--line);
+  border-radius: 14px; overflow: hidden; box-shadow: var(--shadow);
+}
+.village-map { position: relative; }
+.village-scene { display: block; width: 100%; height: auto; }
+.v-sky1 { stop-color: var(--v-sky1); } .v-sky2 { stop-color: var(--v-sky2); }
+.v-far { fill: var(--v-far); } .v-hill { fill: var(--v-hill); } .v-ground { fill: var(--v-ground); }
+.v-water { fill: var(--v-water); opacity: 0.9; }
+.v-path { fill: none; stroke: var(--v-path); stroke-width: 16; stroke-linecap: round; }
+.v-stake { fill: var(--v-wood); opacity: 0.85; }
+.v-wood, .v-pole-fill { fill: var(--v-wood); } .v-roof { fill: var(--v-roof); }
+.v-pole { fill: none; stroke: var(--v-wood); }
+.v-stone { fill: var(--v-stone); } .v-stone-dark { fill: var(--v-stone-dark); stroke: var(--v-stone-dark); }
+.v-wall { fill: var(--v-wall); } .v-field { fill: var(--v-field); opacity: 0.8; }
+.v-leaf { fill: var(--v-leaf); } .v-leaf2 { fill: var(--v-leaf2); }
+.v-window { fill: var(--v-window); } .v-door { fill: var(--v-door); }
+.v-block { fill: var(--v-wall); stroke: var(--v-stone-dark); stroke-width: 2; }
+.v-metal { fill: var(--v-wall); stroke: var(--v-stone-dark); stroke-width: 2; }
+.v-metal-dark { fill: var(--v-stone-dark); stroke: var(--v-stone-dark); }
+.v-log { fill: #c99a62; stroke: var(--v-wood); stroke-width: 2; }
+.v-gold { fill: #e3b53b; }
+.v-flag { fill: var(--accent); }
+.v-glow { fill: var(--v-glow); }
+.v-banner { fill: var(--accent); }
+.v-banner-text { fill: var(--accent-ink); font: 700 14px Georgia, serif; }
+.v-sign { fill: #fffaf0; stroke: var(--v-wood); stroke-width: 2; }
+.v-sign-text { fill: #8a5a2b; font: 700 9px system-ui, sans-serif; }
+.v-sun { fill: #fff3c4; } .v-cloud { fill: #fff; opacity: 0.8; }
+.v-star { fill: #fff; opacity: 0.8; } .v-moon { fill: #f4ead6; } .v-moon-shadow { fill: var(--v-sky1); }
+.v-night { display: none; }
+@media (prefers-color-scheme: dark) { .v-night { display: inline; } .v-day { display: none; } }
+.v-site { opacity: 0.5; }
+.v-selected { fill: #ffd27a; opacity: 0.55; }
+.v-building { transform-box: fill-box; transform-origin: 50% 100%; }
+
+/* Animations : moulin, drapeau, gain de production et amélioration d'un bâtiment. */
+.v-spin { animation: v-spin 6s linear infinite; transform-box: fill-box; transform-origin: center; }
+@keyframes v-spin { to { transform: rotate(360deg); } }
+.v-wave { animation: v-wave 2.4s ease-in-out infinite; transform-box: fill-box; transform-origin: left center; }
+@keyframes v-wave { 50% { transform: skewY(6deg) scaleX(0.92); } }
+.v-bump { animation: v-bump 0.7s ease-out; }
+@keyframes v-bump { 30% { transform: scale(1.12) translateY(-6px); } 60% { transform: scale(0.97); } }
+
+/* Zones cliquables des bâtiments, superposées à la scène. */
+.building-spot {
+  position: absolute; width: 18%; transform: translateX(-50%);
+  background: none; border-radius: 16px; padding: 0; color: inherit;
+}
+.building-spot:hover:not(:disabled) { filter: none; background: color-mix(in srgb, #fff 12%, transparent); }
+.building-spot[aria-pressed='true'] { outline: 2px solid var(--accent); outline-offset: -2px; }
+.spot-label {
+  position: absolute; left: 50%; bottom: -12px; transform: translateX(-50%);
+  background: var(--v-label); color: var(--v-label-ink); border-radius: 999px;
+  padding: 2px 12px; font-size: 0.8rem; font-weight: 600; white-space: nowrap;
+}
+.spot-level {
+  position: absolute; right: 10%; top: -4px; width: 26px; height: 26px; border-radius: 50%;
+  display: grid; place-items: center; background: #fffaf0; color: #8a5a2b;
+  border: 3px solid #8a5a2b; font: 700 13px Georgia, serif;
+}
+.spot-gain {
+  position: absolute; left: 50%; top: 30%; color: var(--ok); font-weight: 700; font-size: 0.8rem;
+  background: var(--v-label); border-radius: 999px; padding: 1px 8px;
+  white-space: nowrap; animation: spot-gain 4s ease-out infinite; pointer-events: none;
+}
+@keyframes spot-gain {
+  0% { opacity: 0; transform: translate(-50%, 6px); }
+  15% { opacity: 1; }
+  60%, 100% { opacity: 0; transform: translate(-50%, -22px); }
+}
+.building-spot:nth-of-type(2) .spot-gain { animation-delay: 1s; }
+.building-spot:nth-of-type(3) .spot-gain { animation-delay: 2s; }
+.building-spot:nth-of-type(4) .spot-gain { animation-delay: 3s; }
+
+/* Panneau d'un bâtiment, placé du côté opposé au bâtiment ; en bas de la scène sur mobile. */
+.building-panel {
+  position: absolute; bottom: 14px; width: min(270px, 45%);
+  background: var(--panel); border: 1px solid var(--accent); border-radius: var(--radius);
+  padding: 12px 14px; box-shadow: 0 8px 24px rgb(0 0 0 / 0.2);
+}
+.building-panel[data-side='right'] { left: 36%; }
+.building-panel[data-side='left'] { right: 36%; }
+.building-panel h3 { margin: 0; }
+.building-panel .panel-row { display: flex; justify-content: space-between; gap: 8px; margin: 8px 0; }
+.building-panel > button:not(.close) { width: 100%; margin-top: 4px; }
+.building-panel .close { position: absolute; right: 12px; top: 8px; font-size: 1.3rem; }
+@media (max-width: 640px) {
+  .building-panel,
+  .building-panel[data-side] {
+    position: relative; inset: auto; width: auto; margin: 0; border-radius: 0; border-width: 1px 0 0;
+  }
+  .spot-label { font-size: 0.65rem; padding: 1px 6px; }
+  .spot-level { width: 20px; height: 20px; font-size: 11px; border-width: 2px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .v-spin, .v-wave, .v-bump, .spot-gain { animation: none; }
+}
 
 /* Navigation de l'espace de jeu : barre fixée en haut, liens en pastilles. */
 .nav {
