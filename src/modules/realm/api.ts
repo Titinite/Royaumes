@@ -10,6 +10,7 @@ const STATUS: Record<DomainError['code'], 404 | 409 | 422> = {
   ALREADY_FOUNDED: 409,
   MAX_LEVEL_REACHED: 409,
   INSUFFICIENT_RESOURCES: 422,
+  FEAST_IN_PROGRESS: 409,
 }
 
 /**

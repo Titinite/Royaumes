@@ -33,6 +33,7 @@ const ERRORS: Record<ApiError['code'], string> = {
   NOT_FOUNDED: "Aucun village pour l'instant.",
   MAX_LEVEL_REACHED: 'Niveau maximum atteint.',
   INSUFFICIENT_RESOURCES: 'Ressources insuffisantes.',
+  FEAST_IN_PROGRESS: 'Un festin est déjà en cours.',
 }
 
 /** Indique si le stock couvre un coût ; faux si le coût est absent (niveau maximal). */

@@ -9,6 +9,7 @@ import {
   type Building,
   CATALOG,
   COST_EXPONENT,
+  FEAST,
   type Levels,
   MAX_LEVEL,
   RESOURCES,
@@ -36,6 +37,14 @@ export interface VillageState {
    * Ils rendent les commandes de mouvement idempotentes : un identifiant connu est ignoré.
    */
   transfers: Record<string, TransferOutcome>
+  /** Dernier festin organisé ; null si le village n'en a jamais organisé. */
+  feast: Feast | null
+}
+
+/** Festin : augmentation de la production, en proportion, jusqu'à l'instant until. */
+export interface Feast {
+  bonus: number
+  until: number
 }
 
 /** Issue d'un mouvement de ressources. */
@@ -49,6 +58,7 @@ export const initialState: VillageState = {
   levels: { sawmill: 0, quarry: 0, mine: 0, mill: 0 },
   asOf: 0,
   transfers: {},
+  feast: null,
 }
 
 // ---------------------------------------------------------------------------
@@ -75,6 +85,11 @@ export type VillageEvent =
       type: 'ResourcesDeposited'
       data: { transferId: string; resources: Partial<Stock>; at: number }
     }
+  // Festin : le coût, l'augmentation et la fin sont enregistrés dans l'événement (ADR 13).
+  | {
+      type: 'FeastHeld'
+      data: { cost: Partial<Stock>; bonus: number; until: number; at: number }
+    }
 
 // ---------------------------------------------------------------------------
 // Commandes : des intentions, nommées à l'impératif
@@ -83,6 +98,7 @@ export type VillageEvent =
 export type VillageCommand =
   | { type: 'FoundVillage'; name: string }
   | { type: 'UpgradeBuilding'; building: Building }
+  | { type: 'HoldFeast' }
   | TransferCommand
 
 /** Commandes de mouvement de ressources, émises par un autre module et non par le joueur. */
@@ -99,6 +115,7 @@ export type DomainError =
   | { code: 'NOT_FOUNDED' }
   | { code: 'MAX_LEVEL_REACHED'; building: Building }
   | { code: 'INSUFFICIENT_RESOURCES'; missing: Partial<Stock> }
+  | { code: 'FEAST_IN_PROGRESS'; until: number }
 
 export type Decision = { ok: true; events: VillageEvent[] } | { ok: false; error: DomainError }
 
@@ -117,16 +134,40 @@ export function productionPerMinute(levels: Levels): Stock {
 }
 
 /**
+ * Stock obtenu en ajoutant à stock la production de l'intervalle [from, to], aux taux rates.
+ * La partie de l'intervalle couverte par un festin est augmentée de son bonus. Un festin commence
+ * toujours à un instant où le stock est calculé : seule sa fin peut tomber dans l'intervalle.
+ */
+export function produce(
+  stock: Stock,
+  rates: Stock,
+  from: number,
+  to: number,
+  feast: Feast | null,
+): Stock {
+  const minutes = Math.max(0, to - from) / 60_000
+  const feastMinutes = feast ? Math.max(0, Math.min(to, feast.until) - from) / 60_000 : 0
+  const result = { ...stock }
+  for (const resource of RESOURCES) {
+    result[resource] += rates[resource] * (minutes + feastMinutes * (feast?.bonus ?? 0))
+  }
+  return result
+}
+
+/** Festin en cours à l'instant at ; null s'il n'y en a aucun. */
+export function feastAt(feast: Feast | null, at: number): Feast | null {
+  return feast && at < feast.until ? feast : null
+}
+
+/**
  * Ajoute au stock la production accumulée entre state.asOf et l'instant at,
  * puis fait de at le nouvel instant de référence.
  * Un nouvel objet est renvoyé : l'état reçu n'est jamais modifié.
  */
 export function accrue(state: VillageState, at: number): VillageState {
   if (!state.founded || at <= state.asOf) return state
-  const minutes = (at - state.asOf) / 60_000
   const rates = productionPerMinute(state.levels)
-  const stock = { ...state.stock }
-  for (const resource of RESOURCES) stock[resource] += rates[resource] * minutes
+  const stock = produce(state.stock, rates, state.asOf, at, state.feast)
   return { ...state, stock, asOf: at }
 }
 
@@ -187,6 +228,16 @@ export function evolve(state: VillageState, event: VillageEvent): VillageState {
         ...current,
         stock: addTo(current.stock, event.data.resources, 1),
         transfers: { ...current.transfers, [event.data.transferId]: 'deposited' },
+      }
+    }
+
+    // Le festin est payé sur le stock calculé à son instant, et augmente la production ensuite.
+    case 'FeastHeld': {
+      const current = accrue(state, event.data.at)
+      return {
+        ...current,
+        stock: addTo(current.stock, event.data.cost, -1),
+        feast: { bonus: event.data.bonus, until: event.data.until },
       }
     }
   }
@@ -269,6 +320,32 @@ export function decide(state: VillageState, command: VillageCommand, now: number
       }
     }
 
+    case 'HoldFeast': {
+      if (!state.founded) return { ok: false, error: { code: 'NOT_FOUNDED' } }
+      // Un seul festin à la fois : un festin ne peut être ni cumulé, ni prolongé.
+      const running = feastAt(state.feast, now)
+      if (running) return { ok: false, error: { code: 'FEAST_IN_PROGRESS', until: running.until } }
+      const missing = missingFor(accrue(state, now).stock, FEAST.cost)
+      if (Object.keys(missing).length > 0) {
+        return { ok: false, error: { code: 'INSUFFICIENT_RESOURCES', missing } }
+      }
+      // Comme pour une amélioration, les valeurs du catalogue sont recopiées dans l'événement.
+      return {
+        ok: true,
+        events: [
+          {
+            type: 'FeastHeld',
+            data: {
+              cost: { ...FEAST.cost },
+              bonus: FEAST.bonus,
+              until: now + FEAST.durationMs,
+              at: now,
+            },
+          },
+        ],
+      }
+    }
+
     case 'WithdrawResources': {
       // Idempotence : un mouvement déjà traité ne produit aucun nouvel événement.
       if (command.transferId in state.transfers) return { ok: true, events: [] }
@@ -316,6 +393,8 @@ export interface VillageView {
   ratesPerMinute: Stock
   /** Coût de la prochaine amélioration de chaque bâtiment ; null au niveau maximal. */
   nextCosts: Record<Building, Partial<Stock> | null>
+  /** Festin en cours à l'instant de la vue ; null s'il n'y en a aucun. */
+  feast: Feast | null
   /** Instant auquel la vue a été calculée. */
   asOf: number
 }
@@ -333,6 +412,7 @@ export function toView(state: VillageState, now: number): VillageView {
     levels: current.levels,
     ratesPerMinute: productionPerMinute(current.levels),
     nextCosts,
+    feast: feastAt(current.feast, now),
     asOf: now,
   }
 }
@@ -342,8 +422,5 @@ export function toView(state: VillageState, now: number): VillageView {
  * Utilisé par l'interface pour faire évoluer l'affichage sans interroger le serveur.
  */
 export function stockAt(view: VillageView, at: number): Stock {
-  const minutes = Math.max(0, at - view.asOf) / 60_000
-  const stock = { ...view.stock }
-  for (const resource of RESOURCES) stock[resource] += view.ratesPerMinute[resource] * minutes
-  return stock
+  return produce(view.stock, view.ratesPerMinute, view.asOf, at, view.feast)
 }

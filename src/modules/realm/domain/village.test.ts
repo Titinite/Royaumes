@@ -124,3 +124,91 @@ describe('Village - amélioration', () => {
     expect(state).toEqual(copy)
   })
 })
+
+describe('Village - festin', () => {
+  // 300 unités de blé versées à la fondation : de quoi payer un festin.
+  const wheat: VillageEvent = {
+    type: 'ResourcesDeposited',
+    data: { transferId: 'blé', resources: { wheat: 300 }, at: T0 },
+  }
+  // 300 blés de plus, pour un second festin.
+  const moreWheat: VillageEvent = { ...wheat, data: { ...wheat.data, transferId: 'blé-2' } }
+  const hold = (events: VillageEvent[], at: number) =>
+    decide(replay(events), { type: 'HoldFeast' }, at)
+
+  it("paie le festin en blé, et enregistre son augmentation et sa fin dans l'événement", () => {
+    const events = eventsOf(hold([founded, wheat], T0))
+    expect(events).toEqual([
+      {
+        type: 'FeastHeld',
+        data: { cost: { wheat: 300 }, bonus: 0.25, until: T0 + minutes(5), at: T0 },
+      },
+    ])
+    const view = toView(replay([founded, wheat, ...events]), T0)
+    expect(view.stock.wheat).toBe(0)
+    expect(view.feast).toEqual({ bonus: 0.25, until: T0 + minutes(5) })
+  })
+
+  it('augmente toute la production de 25 % pendant le festin', () => {
+    const state = replay([founded, wheat, ...eventsOf(hold([founded, wheat], T0))])
+    // Scierie 1 et carrière 1 : 12,5 bois et 7,5 pierres par minute pendant le festin.
+    expect(toView(state, T0 + minutes(4)).stock).toEqual({
+      wood: 150,
+      stone: 80,
+      gold: 0,
+      wheat: 0,
+    })
+  })
+
+  it("arrête l'augmentation à la fin du festin, même au milieu d'un intervalle", () => {
+    const state = replay([founded, wheat, ...eventsOf(hold([founded, wheat], T0))])
+    // 10 minutes de production, dont 5 augmentées : 100 + 12,5 bois, 60 + 7,5 pierres.
+    const view = toView(state, T0 + minutes(10))
+    expect(view.stock).toEqual({ wood: 212.5, stone: 117.5, gold: 0, wheat: 0 })
+    expect(view.feast).toBeNull()
+  })
+
+  it("applique l'augmentation aux niveaux améliorés pendant le festin", () => {
+    const feast = eventsOf(hold([founded, wheat], T0))
+    const upgrade = eventsOf(
+      decide(
+        replay([founded, wheat, ...feast]),
+        { type: 'UpgradeBuilding', building: 'sawmill' },
+        T0,
+      ),
+    )
+    const state = replay([founded, wheat, ...feast, ...upgrade])
+    // Scierie 2 : 20 bois par minute, 25 pendant le festin.
+    expect(toView(state, T0 + minutes(4)).stock.wood).toBe(state.stock.wood + 100)
+  })
+
+  it("refuse un second festin tant que le premier n'est pas terminé", () => {
+    const events = [founded, wheat, ...eventsOf(hold([founded, wheat], T0)), moreWheat]
+    expect(hold(events, T0 + minutes(4))).toEqual({
+      ok: false,
+      error: { code: 'FEAST_IN_PROGRESS', until: T0 + minutes(5) },
+    })
+  })
+
+  it('accepte un nouveau festin dès la fin du précédent', () => {
+    const events = [founded, wheat, ...eventsOf(hold([founded, wheat], T0)), moreWheat]
+    expect(hold(events, T0 + minutes(5)).ok).toBe(true)
+  })
+
+  it('refuse un festin sans assez de blé, en indiquant la quantité manquante', () => {
+    expect(hold([founded], T0)).toEqual({
+      ok: false,
+      error: { code: 'INSUFFICIENT_RESOURCES', missing: { wheat: 300 } },
+    })
+  })
+
+  it("refuse un festin tant qu'aucun village n'est fondé", () => {
+    expect(hold([], T0)).toEqual({ ok: false, error: { code: 'NOT_FOUNDED' } })
+  })
+
+  it("extrapole dans l'interface le même stock que le serveur, fin du festin comprise", () => {
+    const state = replay([founded, wheat, ...eventsOf(hold([founded, wheat], T0))])
+    const later = T0 + minutes(10)
+    expect(stockAt(toView(state, T0 + minutes(2)), later)).toEqual(toView(state, later).stock)
+  })
+})

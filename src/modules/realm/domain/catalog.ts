@@ -41,3 +41,17 @@ export const COST_EXPONENT = 1.3
 /** Stock et niveaux d'un village au moment de sa fondation. */
 export const STARTING_STOCK: Stock = { wood: 100, stone: 50, gold: 0, wheat: 0 }
 export const STARTING_LEVELS: Levels = { sawmill: 1, quarry: 1, mine: 0, mill: 0 }
+
+/**
+ * Festin : le joueur dépense du blé pour augmenter toute la production du village pendant une
+ * durée limitée. Le coût est élevé pour que le festin reste un choix ponctuel, et un seul festin
+ * peut être en cours à la fois.
+ */
+export const FEAST = {
+  /** Coût d'un festin. */
+  cost: { wheat: 300 } as Partial<Stock>,
+  /** Augmentation de la production, en proportion : 0,25 pour +25 %. */
+  bonus: 0.25,
+  /** Durée d'un festin, en millisecondes. */
+  durationMs: 5 * 60_000,
+}
