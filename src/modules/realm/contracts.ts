@@ -7,9 +7,9 @@ import { z } from 'zod'
 import { BUILDINGS, type Stock } from './domain/catalog'
 
 export type { Building, Resource, Stock } from './domain/catalog'
-export { BUILDINGS, CATALOG, MAX_LEVEL, RESOURCES } from './domain/catalog'
-export type { DomainError, VillageView } from './domain/village'
-export { stockAt } from './domain/village'
+export { BUILDINGS, CATALOG, FEAST, MAX_LEVEL, RESOURCES } from './domain/catalog'
+export type { DomainError, Feast, VillageView } from './domain/village'
+export { feastAt, stockAt } from './domain/village'
 
 /** Corps attendu pour fonder un village. */
 export const FoundVillageInput = z.object({

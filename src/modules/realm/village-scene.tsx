@@ -15,6 +15,9 @@ export const BUILDING_SPOTS: Record<Building, { x: number; y: number }> = {
   quarry: { x: 690, y: 335 },
 }
 
+/** Position de l'hôtel de ville, où se tient le festin. */
+export const HALL_SPOT = { x: 440, y: 225 }
+
 /** Dimensions de la scène, pour convertir une position en pourcentage. */
 export const SCENE = { width: 880, height: 430 }
 
@@ -164,17 +167,73 @@ function BuildingDrawing({
   )
 }
 
+/** Lanternes tendues entre les tours de l'hôtel de ville, pendant un festin. */
+const LANTERNS = [-46, -28, -10, 10, 28, 46]
+
+/** Hauteur de la guirlande à l'abscisse x : courbe de Bézier de -58 à 58, creusée de 13 unités. */
+const sag = (x: number) => {
+  const t = (x + 58) / 116
+  return 52 * t * (1 - t)
+}
+
+/** Mets posés sur la table du festin : position et couleur (pain, blé, fruits). */
+const DISHES = [
+  { x: -58, fill: '#c98a3f' },
+  { x: -34, fill: '#e8c25a' },
+  { x: -10, fill: '#b4553a' },
+  { x: 14, fill: '#c98a3f' },
+  { x: 38, fill: '#e8c25a' },
+  { x: 60, fill: '#7a9a3a' },
+]
+
+/** Décor du festin : guirlande de lanternes sur l'hôtel de ville, et table dressée devant. */
+function FeastDecor() {
+  return (
+    <g className="v-feast">
+      <g transform="translate(440 145)">
+        <path className="v-garland" d="M-58 0 Q0 26 58 0" />
+        {LANTERNS.map((x, i) => (
+          <circle
+            key={`lantern-${x}`}
+            className="v-lantern"
+            cx={x}
+            cy={sag(x) + 5}
+            r="4.5"
+            style={{ animationDelay: `${i * 0.35}s` }}
+          />
+        ))}
+      </g>
+      <g transform="translate(440 352)">
+        <ellipse className="v-feast-glow" rx="110" ry="30" />
+        <rect className="v-wood" x="-78" y="-6" width="156" height="10" rx="3" />
+        <rect className="v-wood" x="-70" y="4" width="6" height="16" />
+        <rect className="v-wood" x="64" y="4" width="6" height="16" />
+        <rect className="v-cloth" x="-74" y="-8" width="148" height="5" rx="2" />
+        {DISHES.map((d) => (
+          <ellipse key={`dish-${d.x}`} cx={d.x} cy="-12" rx="8" ry="6" fill={d.fill} />
+        ))}
+        <path className="v-steam" d="M-34 -22 q4 -6 0 -12 q-4 -6 0 -12" />
+        <path className="v-steam" d="M14 -22 q4 -6 0 -12 q-4 -6 0 -12" />
+      </g>
+    </g>
+  )
+}
+
 /** Décor du village, avec ses bâtiments à leur niveau actuel. */
 export function VillageScene({
   name,
   levels,
   selected,
   bumped,
+  feasting,
 }: {
   name: string
   levels: Record<Building, number>
-  selected: Building | null
+  /** Bâtiment sélectionné, ou hall pour l'hôtel de ville. */
+  selected: Building | 'hall' | null
   bumped: Building | null
+  /** Vrai pendant un festin : la scène est décorée. */
+  feasting: boolean
 }) {
   const stakes = Array.from({ length: 40 }, (_, i) => 20 + i * 21)
   const stars = Array.from({ length: 36 }, (_, i) => ({
@@ -233,7 +292,8 @@ export function VillageScene({
       <Tree x={330} y={255} s={0.7} />
 
       {/* Hôtel de ville, au centre : il porte le nom du village. */}
-      <g transform="translate(440 225)">
+      <g transform={`translate(${HALL_SPOT.x} ${HALL_SPOT.y})`}>
+        {selected === 'hall' && <ellipse className="v-selected" cx="0" cy="12" rx="95" ry="18" />}
         <circle className="v-glow" r="80" cy="-20" />
         <rect className="v-wall" x="-55" y="-55" width="110" height="65" />
         <rect className="v-stone" x="-75" y="-80" width="34" height="90" />
@@ -252,6 +312,7 @@ export function VillageScene({
         <path className="v-pole" d="M0 -105 v-32" strokeWidth="3" />
         <path className="v-flag v-wave" d="M0 -137 h26 l-7 8 l7 8 h-26z" />
       </g>
+      {feasting && <FeastDecor />}
       <g transform="translate(440 270)">
         <rect className="v-banner" x="-62" y="-13" width="124" height="26" rx="13" />
         <text className="v-banner-text" textAnchor="middle" dy="5">

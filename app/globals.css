@@ -222,6 +222,42 @@ input:focus { border-color: var(--accent); }
   .v-spin, .v-wave, .v-bump, .spot-gain { animation: none; }
 }
 
+/* Festin : bandeau, panneau de l'hôtel de ville, décor de la scène et taux augmentés. */
+.feast-banner {
+  display: flex; align-items: center; gap: 10px; margin: 12px 0 0; padding: 8px 14px;
+  border: 1px solid #d4a72c; border-radius: var(--radius);
+  background: linear-gradient(90deg, color-mix(in srgb, #d4a72c 22%, var(--panel)), var(--panel));
+  font-variant-numeric: tabular-nums;
+}
+.feast-banner .game-icon { color: #b4553a; animation: feast-bob 1.6s ease-in-out infinite; }
+@keyframes feast-bob { 50% { transform: translateY(-3px) rotate(-6deg); } }
+.hud-item small[data-feast='true'] { color: var(--ok); font-weight: 700; }
+.hall-spot { width: 18%; }
+.spot-feast { right: 4%; color: #b4553a; border-color: #d4a72c; }
+.building-panel[data-side='hall'] { left: 14px; }
+.v-garland { fill: none; stroke: var(--v-wood); stroke-width: 1.5; }
+.v-lantern { fill: #ffcf5a; filter: drop-shadow(0 0 4px #ffb02e); animation: v-lantern 1.4s ease-in-out infinite alternate; }
+@keyframes v-lantern { to { fill: #ff9a3d; opacity: 0.75; } }
+.v-cloth { fill: #f4ead6; }
+.v-feast-glow { fill: #ffd27a; opacity: 0.28; }
+.v-steam { fill: none; stroke: #fff; stroke-width: 2; stroke-linecap: round; opacity: 0; animation: v-steam 2.4s ease-out infinite; }
+.v-steam + .v-steam { animation-delay: 1.2s; }
+@keyframes v-steam {
+  0% { opacity: 0; transform: translateY(4px); }
+  30% { opacity: 0.7; }
+  100% { opacity: 0; transform: translateY(-10px); }
+}
+.v-feast { animation: v-feast-in 0.6s ease-out; }
+@keyframes v-feast-in { from { opacity: 0; } }
+@media (max-width: 640px) {
+  .building-panel[data-side='hall'] { left: auto; }
+  .feast-banner { font-size: 0.9rem; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .feast-banner .game-icon, .v-lantern, .v-steam, .v-feast { animation: none; }
+  .v-steam { opacity: 0.5; }
+}
+
 /* Navigation de l'espace de jeu : barre fixée en haut, liens en pastilles. */
 .nav {
   position: sticky;

@@ -11,6 +11,9 @@ import {
   type Building,
   CATALOG,
   type DomainError,
+  FEAST,
+  type Feast,
+  feastAt,
   MAX_LEVEL,
   RESOURCES,
   type Stock,
@@ -18,7 +21,7 @@ import {
   type VillageView,
   villageChannel,
 } from './contracts'
-import { BUILDING_SPOTS, SCENE, VillageScene } from './village-scene'
+import { BUILDING_SPOTS, HALL_SPOT, SCENE, VillageScene } from './village-scene'
 
 /** Client HTTP typé, déduit de la sous-application Hono du module. */
 const client = hc<RealmApi>('/api/realm')
@@ -57,6 +60,22 @@ const spotOf = (b: Building) => ({
   top: `${((BUILDING_SPOTS[b].y - 68) / SCENE.height) * 100}%`,
   height: `${(90 / SCENE.height) * 100}%`,
 })
+
+/**
+ * Zone cliquable de l'hôtel de ville : elle couvre ses tours, de 140 unités au-dessus de son
+ * point d'ancrage jusqu'à la bannière du nom du village.
+ */
+const HALL_STYLE = {
+  left: `${(HALL_SPOT.x / SCENE.width) * 100}%`,
+  top: `${((HALL_SPOT.y - 140) / SCENE.height) * 100}%`,
+  height: `${(198 / SCENE.height) * 100}%`,
+}
+
+/** Durée restante, au format minutes:secondes. */
+function formatRemaining(ms: number) {
+  const seconds = Math.max(0, Math.ceil(ms / 1000))
+  return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`
+}
 
 /** Coût d'une amélioration, présenté par les icônes des ressources. */
 function CostView({ cost }: { cost: Partial<Stock> }) {
@@ -131,6 +150,57 @@ function BuildingPanel({
   )
 }
 
+/** Panneau de l'hôtel de ville : organisation d'un festin, ou temps restant du festin en cours. */
+function HallPanel({
+  feast,
+  stock,
+  now,
+  error,
+  onFeast,
+  onClose,
+}: {
+  feast: Feast | null
+  stock: Stock
+  now: number
+  error: string | null
+  onFeast: () => void
+  onClose: () => void
+}) {
+  return (
+    <section className="building-panel" data-side="hall" aria-label="Hôtel de ville">
+      <button type="button" className="link close" onClick={onClose} aria-label="Fermer">
+        ×
+      </button>
+      <h3>Hôtel de ville</h3>
+      <div className="muted">Festin du village</div>
+      <div className="panel-row">
+        <span>Production</span>
+        <span>
+          <strong>+{FEAST.bonus * 100} %</strong> pendant {FEAST.durationMs / 60_000} min
+        </span>
+      </div>
+      {feast ? (
+        <p className="ok">Festin en cours : encore {formatRemaining(feast.until - now)}.</p>
+      ) : (
+        <>
+          <div className="panel-row">
+            <span>Coût</span>
+            <CostView cost={FEAST.cost} />
+          </div>
+          <button type="button" disabled={!canAfford(stock, FEAST.cost)} onClick={onFeast}>
+            Organiser un festin
+          </button>
+        </>
+      )}
+      {error && (
+        <p className="error" role="alert">
+          {error}
+        </p>
+      )}
+    </section>
+  )
+}
+
 /** Écran du Village : fondation, stock et bâtiments, mis à jour en temps réel. */
 export function VillageScreen({ userId }: { userId: string }) {
   // undefined : chargement en cours ; null : aucun village fondé.
@@ -138,7 +208,7 @@ export function VillageScreen({ userId }: { userId: string }) {
   const [now, setNow] = useState(() => Date.now())
   const [error, setError] = useState<string | null>(null)
   // Bâtiment dont le panneau est ouvert, et bâtiment qui vient d'être amélioré (animation).
-  const [selected, setSelected] = useState<Building | null>(null)
+  const [selected, setSelected] = useState<Building | 'hall' | null>(null)
   const [bumped, setBumped] = useState<Building | null>(null)
 
   // REQUÊTE : lecture de la vue du village.
@@ -174,6 +244,10 @@ export function VillageScreen({ userId }: { userId: string }) {
       setTimeout(() => setBumped(null), 700)
     }
   }
+  async function holdFeast() {
+    const res = await client.village.feast.$post()
+    handle(await res.json())
+  }
   /** Applique une réponse de l'API ; renvoie vrai si la commande a réussi. */
   function handle(body: { view: VillageView } | { error: ApiError }) {
     if ('error' in body) {
@@ -184,7 +258,7 @@ export function VillageScreen({ userId }: { userId: string }) {
     setView(body.view)
     return true
   }
-  function select(building: Building | null) {
+  function select(building: Building | 'hall' | null) {
     setError(null)
     setSelected((current) => (current === building ? null : building))
   }
@@ -227,6 +301,9 @@ export function VillageScreen({ userId }: { userId: string }) {
 
   // Village fondé : stock extrapolé à l'instant courant, puis scène et bâtiments.
   const stock = stockAt(view, now)
+  // Le festin de la vue est terminé dès que l'heure locale dépasse sa fin.
+  const feast = feastAt(view.feast, now)
+  const boost = 1 + (feast?.bonus ?? 0)
   return (
     <>
       {title}
@@ -236,15 +313,45 @@ export function VillageScreen({ userId }: { userId: string }) {
             <GameIcon kind={r} size={28} />
             <div>
               <strong>{Math.floor(stock[r])}</strong>
-              <small>+{view.ratesPerMinute[r]} / min</small>
+              <small data-feast={!!feast}>+{view.ratesPerMinute[r] * boost} / min</small>
             </div>
           </div>
         ))}
       </section>
 
+      {feast && (
+        <p className="feast-banner" role="status">
+          <GameIcon kind="feast" size={22} />
+          <span>
+            Festin en cours : production <strong>+{feast.bonus * 100} %</strong>, encore{' '}
+            <strong>{formatRemaining(feast.until - now)}</strong>
+          </span>
+        </p>
+      )}
+
       <section className="village-stage" aria-label="Bâtiments du village">
         <div className="village-map">
-          <VillageScene name={view.name} levels={view.levels} selected={selected} bumped={bumped} />
+          <VillageScene
+            name={view.name}
+            levels={view.levels}
+            selected={selected}
+            bumped={bumped}
+            feasting={!!feast}
+          />
+          <button
+            type="button"
+            className="building-spot hall-spot"
+            style={HALL_STYLE}
+            aria-pressed={selected === 'hall'}
+            aria-label={`Hôtel de ville${feast ? ', festin en cours' : ''}`}
+            onClick={() => select('hall')}
+          >
+            {feast && (
+              <span className="spot-level spot-feast" aria-hidden="true">
+                <GameIcon kind="feast" size={16} />
+              </span>
+            )}
+          </button>
           {BUILDINGS.map((b) => {
             const level = view.levels[b]
             const producing = level > 0
@@ -276,7 +383,17 @@ export function VillageScreen({ userId }: { userId: string }) {
             )
           })}
         </div>
-        {selected && (
+        {selected === 'hall' && (
+          <HallPanel
+            feast={feast}
+            stock={stock}
+            now={now}
+            error={error}
+            onFeast={holdFeast}
+            onClose={() => select(null)}
+          />
+        )}
+        {selected && selected !== 'hall' && (
           <BuildingPanel
             building={selected}
             view={view}
@@ -287,7 +404,9 @@ export function VillageScreen({ userId }: { userId: string }) {
           />
         )}
       </section>
-      <p className="muted hint">Cliquez sur un bâtiment pour l'améliorer.</p>
+      <p className="muted hint">
+        Cliquez sur un bâtiment pour l'améliorer, ou sur l'hôtel de ville pour organiser un festin.
+      </p>
     </>
   )
 }
