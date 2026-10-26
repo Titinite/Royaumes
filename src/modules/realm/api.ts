@@ -19,28 +19,38 @@ const STATUS: Record<DomainError['code'], 404 | 409 | 422> = {
  * en réponse HTTP. Aucune règle métier n'est écrite ici.
  */
 export function createRealmApi(service: VillageService) {
-  return new Hono<AppEnv>()
-    .get('/village', async (c) => c.json({ view: await service.getView(c.var.userId) }))
+  return (
+    new Hono<AppEnv>()
+      .get('/village', async (c) => c.json({ view: await service.getView(c.var.userId) }))
 
-    .post('/village', validateJson(FoundVillageInput), async (c) => {
-      const result = await service.execute(c.var.userId, {
-        type: 'FoundVillage',
-        name: c.req.valid('json').name,
+      .post('/village', validateJson(FoundVillageInput), async (c) => {
+        const result = await service.execute(c.var.userId, {
+          type: 'FoundVillage',
+          name: c.req.valid('json').name,
+        })
+        return result.ok
+          ? c.json({ view: result.view }, 201)
+          : c.json({ error: result.error }, STATUS[result.error.code])
       })
-      return result.ok
-        ? c.json({ view: result.view }, 201)
-        : c.json({ error: result.error }, STATUS[result.error.code])
-    })
 
-    .post('/village/upgrade', validateJson(UpgradeBuildingInput), async (c) => {
-      const result = await service.execute(c.var.userId, {
-        type: 'UpgradeBuilding',
-        building: c.req.valid('json').building,
+      .post('/village/upgrade', validateJson(UpgradeBuildingInput), async (c) => {
+        const result = await service.execute(c.var.userId, {
+          type: 'UpgradeBuilding',
+          building: c.req.valid('json').building,
+        })
+        return result.ok
+          ? c.json({ view: result.view })
+          : c.json({ error: result.error }, STATUS[result.error.code])
       })
-      return result.ok
-        ? c.json({ view: result.view })
-        : c.json({ error: result.error }, STATUS[result.error.code])
-    })
+
+      // Festin : la requête n'a pas de corps, le coût et l'effet sont fixés par le domaine.
+      .post('/village/feast', async (c) => {
+        const result = await service.execute(c.var.userId, { type: 'HoldFeast' })
+        return result.ok
+          ? c.json({ view: result.view })
+          : c.json({ error: result.error }, STATUS[result.error.code])
+      })
+  )
 }
 
 /** Type de la sous-application, utilisé par le client typé de l'interface. */
