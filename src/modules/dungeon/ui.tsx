@@ -5,13 +5,25 @@ import { useRouter } from 'next/navigation'
 import { useCallback, useEffect, useState } from 'react'
 import { useChannel } from '@/platform/realtime/use-channel'
 import { Entity } from '@/ui/entity'
+import { GameIcon } from '@/ui/game-icon'
 import { useCountdown } from '@/ui/use-countdown'
 import type { DungeonApi } from './api'
+import {
+  ActionHand,
+  Candle,
+  type CardKind,
+  Corridor,
+  HeroCard,
+  MonsterFighter,
+  useRoundReplay,
+  useTorchlight,
+} from './arena'
 import {
   type Action,
   DIFFICULTIES,
   type Difficulty,
   type Effect,
+  EXPLORE_MS,
   type GameError,
   type GameView,
   gameChannel,
@@ -19,6 +31,7 @@ import {
   MONSTERS,
   type Monster,
   type OpenGame,
+  ROUND_MS,
 } from './contracts'
 
 /** Client HTTP typé, déduit de la sous-application Hono du module. */
@@ -159,6 +172,10 @@ export function DungeonGame({ gameId, userId }: { gameId: string; userId: string
   // undefined : chargement en cours ; null : expédition introuvable.
   const [view, setView] = useState<GameView | null | undefined>(undefined)
   const [error, setError] = useState<string | null>(null)
+  // Carte d'action choisie, en attente de sa cible (attaque ou soin).
+  const [card, setCard] = useState<CardKind | null>(null)
+  const torch = useTorchlight()
+  const replay = useRoundReplay(view?.lastRound)
   const param = { id: gameId }
 
   // REQUÊTE : lecture de la vue de l'expédition, filtrée pour le joueur.
@@ -194,6 +211,7 @@ export function DungeonGame({ gameId, userId }: { gameId: string; userId: string
     handle(await (await client.games[':id'].door.$post({ param })).json())
   async function act(action: Action) {
     if (!view) return
+    setCard(null)
     const res = await client.games[':id'].action.$post({
       param,
       json: { round: view.round, action },
@@ -248,155 +266,171 @@ export function DungeonGame({ gameId, userId }: { gameId: string; userId: string
     return monster ? monsterName(monster, view.monsters) : id
   }
   const me = view.heroes.find((hero) => hero.id === userId)
-  const standingMonsters = view.monsters.filter((monster) => monster.hp > 0)
-  const standingHeroes = view.heroes.filter((hero) => hero.hp > 0)
+  const canAct = view.phase === 'combat' && !!me && me.hp > 0 && !me.action
+  const inArena = view.phase !== 'lobby'
+
+  /** Choix d'une carte : la défense est jouée aussitôt, l'attaque et le soin attendent une cible. */
+  function pick(kind: CardKind) {
+    if (kind === 'defend') act({ type: 'defend' })
+    else setCard((current) => (current === kind ? null : kind))
+  }
 
   return (
     <>
       {title}
+      <Corridor room={view.room} roomCount={view.roomCount} />
 
-      {/* Héros de l'expédition. */}
-      <section className="panel heroes" aria-label="Héros">
-        {view.heroes.map((hero) => (
-          <div key={hero.id} className="fighter" data-down={hero.hp <= 0}>
-            <span>
-              <Entity kind={hero.companion ? 'companion' : 'hero'} /> {hero.name}
-              {hero.id === view.hostId && <span className="muted"> (hôte)</span>}
-              {hero.companion && <span className="muted"> (piloté par l'ordinateur)</span>}
-            </span>
-            <span className="muted">
-              {hero.hp}/{hero.maxHp} PV
-            </span>
-            {view.phase === 'combat' && hero.ready && <span className="ok">prêt</span>}
-            {view.turnHeroId === hero.id && <span className="ok">à son tour</span>}
-          </div>
-        ))}
-      </section>
-
-      {/* Salon : rejoindre ou lancer l'expédition. */}
+      {/* Salon : héros réunis, rejoindre ou lancer l'expédition. */}
       {view.phase === 'lobby' && (
-        <div className="panel">
+        <section className="panel lobby" aria-label="Salon de l'expédition">
+          <div className="lobby-heroes">
+            {view.heroes.map((hero) => (
+              <HeroCard
+                key={hero.id}
+                hero={hero}
+                me={hero.id === userId}
+                turn={false}
+                targetable={false}
+                effect={null}
+                onTarget={() => {}}
+              />
+            ))}
+          </div>
           <p className="muted">
             Communiquez l'adresse de cette page aux joueurs que vous souhaitez inviter.
           </p>
-          {!view.isMember && view.heroes.length < MAX_HEROES && (
-            <button type="button" onClick={join}>
-              Rejoindre l'expédition
-            </button>
-          )}
-          {view.isHost && view.heroes.length < MAX_HEROES && (
-            <button type="button" onClick={addCompanion}>
-              <Entity kind="companion" /> Ajouter un compagnon
-            </button>
-          )}
-          {view.isHost && (
-            <button type="button" onClick={start}>
-              Entrer dans le donjon
-            </button>
-          )}
+          <div className="row">
+            {!view.isMember && view.heroes.length < MAX_HEROES && (
+              <button type="button" onClick={join}>
+                Rejoindre l'expédition
+              </button>
+            )}
+            {view.isHost && view.heroes.length < MAX_HEROES && (
+              <button type="button" onClick={addCompanion}>
+                <GameIcon kind="companion" size={18} /> Ajouter un compagnon
+              </button>
+            )}
+            {view.isHost && (
+              <button type="button" onClick={start}>
+                Entrer dans le donjon
+              </button>
+            )}
+          </div>
           {view.isMember && !view.isHost && (
             <p className="muted">En attente du lancement par l'hôte.</p>
           )}
-        </div>
+        </section>
       )}
 
-      {/* Exploration : ouvrir la porte suivante, à tour de rôle. */}
-      {view.phase === 'exploring' && (
-        <div className="panel">
-          <div className="row" style={{ justifyContent: 'space-between' }}>
-            <h2>Exploration</h2>
-            {remaining !== null && (
-              <span className="countdown" title="La porte s'ouvrira d'elle-même">
-                {remaining} s
-              </span>
-            )}
-          </div>
-          <p>
-            Salle {view.room + 1} sur {view.roomCount}
-            {view.currentRoom?.kind === 'treasure' && ` : un trésor de ${view.currentRoom.gold} or`}
-            {view.currentRoom?.kind === 'empty' && ' : une salle vide'}
-            {' - '}
-            <Entity kind="gold" /> {view.loot}
-          </p>
-          {view.turnHeroId === userId ? (
-            <button type="button" onClick={openDoor}>
-              <Entity kind="door" /> Ouvrir la porte suivante
-            </button>
-          ) : (
-            <p className="muted">Au tour de {nameOf(view.turnHeroId ?? '')}.</p>
-          )}
-        </div>
-      )}
+      {/* Arène : exploration, combat et fin de l'expédition, à la lueur de la torche. */}
+      {inArena && (
+        <section
+          ref={torch.ref}
+          onPointerMove={torch.onPointerMove}
+          className="arena"
+          data-phase={view.phase}
+          aria-label="Arène"
+        >
+          <div className="arena-light" aria-hidden="true" />
 
-      {/* Combat : monstres, compte à rebours et choix de l'action. */}
-      {view.phase === 'combat' && (
-        <div className="panel">
-          <div className="row" style={{ justifyContent: 'space-between' }}>
-            <h2>
-              Combat - salle {view.room + 1}, manche {view.round}
-            </h2>
-            {remaining !== null && <span className="countdown">{remaining} s</span>}
-          </div>
-          <div className="monsters">
-            {view.monsters.map((monster) => (
-              <div key={monster.id} className="fighter" data-down={monster.hp <= 0}>
-                <span>
-                  <Entity kind={monster.kind} /> {monsterName(monster, view.monsters)}
-                </span>
-                <span className="muted">
-                  {monster.hp}/{monster.maxHp} PV
-                </span>
-              </div>
-            ))}
-          </div>
-          {me && me.hp > 0 && !me.action && (
-            <div className="actions">
-              {standingMonsters.map((monster) => (
-                <button
-                  key={monster.id}
-                  type="button"
-                  onClick={() => act({ type: 'attack', target: monster.id })}
-                >
-                  Attaquer {monsterName(monster, view.monsters)}
-                </button>
-              ))}
-              <button type="button" onClick={() => act({ type: 'defend' })}>
-                Se défendre
-              </button>
-              {standingHeroes.map((hero) => (
-                <button
-                  key={hero.id}
-                  type="button"
-                  onClick={() => act({ type: 'heal', target: hero.id })}
-                >
-                  Soigner {hero.name}
-                </button>
-              ))}
-            </div>
-          )}
-          {me?.action && (
-            <p className="muted">
-              Votre choix : {describeAction(me.action, nameOf)}. En attente des autres héros.
+          {/* L'indication garde sa place même vide : l'arène ne saute pas quand elle change. */}
+          {view.phase === 'combat' && (
+            <p className="arena-hint" role="status" data-visible={card !== null}>
+              {card === 'attack' && 'Choisis le monstre à attaquer'}
+              {card === 'heal' && 'Choisis le héros à soigner'}
             </p>
           )}
-        </div>
+
+          <div className="arena-stage">
+            {view.phase === 'combat' &&
+              view.monsters.map((monster) => (
+                <MonsterFighter
+                  key={monster.id}
+                  monster={monster}
+                  name={monsterName(monster, view.monsters)}
+                  targetable={canAct && card === 'attack' && monster.hp > 0}
+                  effect={replay}
+                  onTarget={() => act({ type: 'attack', target: monster.id })}
+                />
+              ))}
+
+            {view.phase === 'exploring' && (
+              <div className="room-scene">
+                {view.currentRoom?.kind === 'treasure' && (
+                  <p className="room-event">
+                    <GameIcon kind="treasure" size={64} />
+                    <span>Un trésor : +{view.currentRoom.gold} or</span>
+                  </p>
+                )}
+                {view.currentRoom?.kind === 'empty' && (
+                  <p className="room-event muted">Une salle vide, silencieuse.</p>
+                )}
+                {view.room < 0 && <p className="room-event muted">L'entrée du donjon.</p>}
+                {view.turnHeroId === userId ? (
+                  <button type="button" className="door-button" onClick={openDoor}>
+                    <GameIcon kind={view.room === view.roomCount - 2 ? 'boss' : 'door'} size={72} />
+                    <span>Ouvrir la porte suivante</span>
+                  </button>
+                ) : (
+                  <p className="muted">Au tour de {nameOf(view.turnHeroId ?? '')}.</p>
+                )}
+                <p className="muted">
+                  Butin : <GameIcon kind="gold" size={16} /> {view.loot}
+                </p>
+              </div>
+            )}
+
+            {(view.phase === 'won' || view.phase === 'lost') && (
+              <div className="room-scene ending" data-won={view.phase === 'won'}>
+                <GameIcon kind={view.phase === 'won' ? 'treasure' : 'boss'} size={88} />
+                <h2>{view.phase === 'won' ? 'Victoire !' : 'Défaite...'}</h2>
+                <p>
+                  Butin de l'expédition : <GameIcon kind="gold" size={18} /> {view.loot}
+                </p>
+                <Link href="/dungeon">Retour au Donjon</Link>
+              </div>
+            )}
+          </div>
+
+          {remaining !== null && (view.phase === 'combat' || view.phase === 'exploring') && (
+            <Candle
+              remaining={remaining}
+              total={(view.phase === 'combat' ? ROUND_MS : EXPLORE_MS) / 1000}
+            />
+          )}
+
+          <div className="arena-heroes">
+            {view.heroes.map((hero) => (
+              <HeroCard
+                key={hero.id}
+                hero={hero}
+                me={hero.id === userId}
+                turn={view.turnHeroId === hero.id}
+                targetable={canAct && card === 'heal' && hero.hp > 0}
+                effect={replay}
+                onTarget={() => act({ type: 'heal', target: hero.id })}
+              />
+            ))}
+          </div>
+
+          {view.phase === 'combat' && (
+            <div className="arena-actions">
+              {canAct && <ActionHand selected={card} onPick={pick} />}
+              {me?.action && (
+                <p className="chosen">
+                  Votre choix : {describeAction(me.action, nameOf)}. En attente des autres héros.
+                </p>
+              )}
+              {me && me.hp <= 0 && <p className="chosen">Votre héros est tombé.</p>}
+            </div>
+          )}
+        </section>
       )}
 
-      {/* Fin de l'expédition. */}
-      {(view.phase === 'won' || view.phase === 'lost') && (
-        <div className="panel">
-          <h2>{view.phase === 'won' ? 'Victoire !' : 'Défaite...'}</h2>
-          <p>
-            Butin de l'expédition : <Entity kind="gold" /> {view.loot}
-          </p>
-          <Link href="/dungeon">Retour au Donjon</Link>
-        </div>
-      )}
-
-      {/* Résultat de la dernière manche, connu de tous une fois la manche résolue. */}
+      {/* Résultat de la dernière manche, en texte : il complète le rejeu animé. */}
       {view.lastRound && (
-        <section className="panel" aria-label="Dernière manche">
-          <h2>Manche {view.lastRound.round}</h2>
+        <details className="panel round-log">
+          <summary>Journal de la manche {view.lastRound.round}</summary>
           <ul className="log">
             {Object.entries(view.lastRound.actions).map(([heroId, action]) => (
               <li key={heroId}>
@@ -410,10 +444,14 @@ export function DungeonGame({ gameId, userId }: { gameId: string; userId: string
               </li>
             ))}
           </ul>
-        </section>
+        </details>
       )}
 
-      {error && <p className="error">{error}</p>}
+      {error && (
+        <p className="error" role="alert">
+          {error}
+        </p>
+      )}
     </>
   )
 }

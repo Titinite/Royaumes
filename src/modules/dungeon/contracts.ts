@@ -8,7 +8,7 @@ import { z } from 'zod'
 import { DIFFICULTIES } from './domain/content'
 
 export type { Difficulty, MonsterKind } from './domain/content'
-export { DIFFICULTIES, MAX_HEROES, MONSTERS, ROUND_MS } from './domain/content'
+export { DIFFICULTIES, EXPLORE_MS, MAX_HEROES, MONSTERS, ROUND_MS } from './domain/content'
 export type { Action, Effect, Monster, Phase, Room } from './domain/game'
 export type { GameError } from './domain/rules'
 export type { GameView, HeroView } from './domain/view'
