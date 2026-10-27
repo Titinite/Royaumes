@@ -211,6 +211,13 @@ sans la première ; sans la seconde, la route des tâches quotidiennes reste fer
 - [Fiche de cadrage des Hauts faits (évaluation)](docs/evaluation/fiche-cadrage-achievements.md)
 - [Document de rendu](docs/evaluation/rendu.md)
 
+## Crédits
+
+Les icônes des ressources proviennent de [game-icons.net](https://game-icons.net), par Lorc,
+Delapouite et leurs contributeurs, sous licence
+[CC BY 3.0](https://creativecommons.org/licenses/by/3.0/). Elles sont reproduites sans
+modification dans `src/ui/icon-paths.ts`. La scène du village est dessinée pour le projet.
+
 ## Conventions
 
 - Messages de commit conformes à Conventional Commits.
