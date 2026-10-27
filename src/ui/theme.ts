@@ -21,6 +21,7 @@ export const theme: Record<string, Look> = {
   quarry: { glyph: '⛏️', label: 'Carrière' },
   mine: { glyph: '⚒️', label: 'Mine' },
   mill: { glyph: '🍞', label: 'Moulin' },
+  feast: { glyph: '🍗', label: 'Festin' },
   dungeon: { glyph: '⚔️', label: 'Donjon' },
   hero: { glyph: '🛡️', label: 'Héros' },
   companion: { glyph: '🤖', label: 'Compagnon' },

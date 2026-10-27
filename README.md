@@ -76,7 +76,7 @@ Un module n'est accessible depuis l'extérieur que par ses entrées publiques : 
 | Module | Rôle | Adresse de l'API |
 | --- | --- | --- |
 | `system` | Route de santé | `/api/system` |
-| `realm` | Village : fondation, production de ressources, amélioration des bâtiments | `/api/realm` |
+| `realm` | Village : fondation, production de ressources, amélioration des bâtiments, festin | `/api/realm` |
 | `dungeon` | Donjon : expéditions de un à quatre héros, compagnons pilotés par l'ordinateur, deux niveaux de difficulté, combats en manches simultanées | `/api/dungeon` |
 | `ranking` | Classement des joueurs, construit à partir des événements du Village et du Donjon | `/api/ranking` |
 | `market` | Marché : échanges de ressources entre joueurs, par une saga orchestrée | `/api/market` |
@@ -260,3 +260,7 @@ restent dans une table de travail des Quêtes (dette DT-011 à DT-013).
 Chaque joueur connecté déclenche, par son canal des hauts faits, un rattrapage de la projection deux
 fois par seconde. Un haut fait attribué par erreur n'est pas retiré par une reconstruction (dette
 DT-014 et DT-015, ADR 12).
+
+Le coût d'un festin est fixe (300 blés) : peu rentable au début du jeu, il devient un bonus peu
+coûteux pour un village très développé. La fin d'un festin n'est pas enregistrée dans le journal :
+elle est recalculée à partir de l'instant de fin porté par l'événement `FeastHeld` (ADR 13).

@@ -76,6 +76,31 @@ describe('Service du Village', () => {
     })
     expect((await service().getView('alice'))?.levels.sawmill).toBe(2)
   })
+
+  it("n'accepte qu'un festin lorsque deux sont demandés en même temps", async () => {
+    await service().execute('alice', { type: 'FoundVillage', name: 'Valombre' })
+    // 600 blés : de quoi payer deux festins. Seule la règle du festin unique peut refuser le second.
+    await repo.save('alice', 1, [
+      {
+        type: 'ResourcesDeposited',
+        data: { transferId: 'blé', resources: { wheat: 600 }, at: now },
+      },
+    ])
+
+    const results = await Promise.all([
+      service().execute('alice', { type: 'HoldFeast' }),
+      service().execute('alice', { type: 'HoldFeast' }),
+    ])
+
+    // La seconde commande est rejouée sur l'état à jour, où le premier festin est en cours.
+    expect(results.map((r) => r.ok).sort()).toEqual([false, true])
+    expect(results.find((r) => !r.ok)).toEqual({
+      ok: false,
+      error: { code: 'FEAST_IN_PROGRESS', until: now + 5 * 60_000 },
+    })
+    // Le blé n'est dépensé qu'une fois.
+    expect((await service().getView('alice'))?.stock.wheat).toBe(300)
+  })
 })
 
 describe('Adaptateur fondé sur le journal', () => {

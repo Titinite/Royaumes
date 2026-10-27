@@ -99,3 +99,39 @@ describe("Contrôle d'accès à l'API du Village", () => {
     expect((await get('/api/stream/village-bob', 'alice')).status).toBe(403)
   })
 })
+
+// Le festin est vérifié avec le Village exécuté dans l'application, puis extrait dans son
+// service (TD11) : la nouvelle route doit franchir la passerelle sans aucune modification.
+describe.each([
+  { mode: "dans l'application", villageService: false },
+  { mode: 'dans le service extrait', villageService: true },
+])('Festin du Village, $mode', ({ villageService }) => {
+  it('organise un festin payé en blé, puis refuse un second festin en cours (409)', async () => {
+    const { post, advance } = await createTestApi({ villageService })
+    await post('/api/realm/village', { name: 'Valombre' })
+    // Le moulin coûte 150 bois et 100 pierres : il est construit au bout de 9 minutes,
+    // puis produit 4 blés par minute, soit les 300 blés du festin en 75 minutes.
+    advance(9)
+    expect((await post('/api/realm/village/upgrade', { building: 'mill' })).status).toBe(200)
+
+    const tooEarly = await post('/api/realm/village/feast', undefined)
+    expect(tooEarly.status).toBe(422)
+    expect((await tooEarly.json()).error.missing).toEqual({ wheat: 300 })
+
+    advance(75)
+    const feast = await post('/api/realm/village/feast', undefined)
+    expect(feast.status).toBe(200)
+    const { view } = await feast.json()
+    expect(view.stock.wheat).toBe(0)
+    expect(view.feast).toEqual({ bonus: 0.25, until: Date.UTC(2026, 0, 1) + 89 * 60_000 })
+
+    const again = await post('/api/realm/village/feast', undefined)
+    expect(again.status).toBe(409)
+    expect((await again.json()).error.code).toBe('FEAST_IN_PROGRESS')
+  }, 15000)
+
+  it('refuse un festin anonyme (401)', async () => {
+    const { post } = await createTestApi({ villageService })
+    expect((await post('/api/realm/village/feast', undefined, null)).status).toBe(401)
+  })
+})

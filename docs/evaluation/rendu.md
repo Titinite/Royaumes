@@ -68,19 +68,39 @@
   la source d'un module (`ChannelSource.read(after, channel)`), modification rétrocompatible et
   testée (ADR 12).
 
+## Évolution hors modules : Festin du Village
+
+Cette évolution du module existant `realm` ne fait partie d'aucun des deux modules évalués. Elle
+n'est revendiquée ni comme exigence, ni comme bonus : elle est décrite ici pour que toute
+modification du dépôt soit tracée.
+
+| Élément | Fichiers principaux | Tests qui le vérifient | Documentation |
+| --- | --- | --- | --- |
+| Règle : 300 blés, +25 % de production pendant 5 minutes, un seul festin à la fois | `src/modules/realm/domain/catalog.ts` (`FEAST`), `domain/village.ts` (`HoldFeast`, `FeastHeld`, `produce`, `feastAt`) | `domain/village.test.ts`, section « Village - festin » (9 tests, dont la fin d'un festin au milieu d'un intervalle) | ADR 13 |
+| Concurrence : deux festins demandés en même temps | `application/village-service.ts` (inchangé, `withOptimisticRetry`) | `application/village-service.test.ts` « n'accepte qu'un festin lorsque deux sont demandés en même temps » | ADR 13 |
+| Route `POST /api/realm/village/feast` (409 si un festin est en cours, 422 sans assez de blé) | `src/modules/realm/api.ts` | `src/bootstrap/realm-api.test.ts`, « Festin du Village », exécuté dans l'application et dans le service extrait | ADR 13 ; ADR 09 |
+| Interface : hôtel de ville cliquable, bandeau du festin, décor de la scène | `src/modules/realm/ui.tsx`, `village-scene.tsx`, `app/globals.css` | Vérification manuelle (ordinateur, mobile, thème sombre) | README (Limites actuelles) |
+
+Aucun autre module n'est modifié : le Classement, les Quêtes et les Hauts faits ne lisent pas
+l'événement `FeastHeld`.
+
 ## Indicateurs au rendu
 
 | Indicateur | À l'étiquette `td11-fin` | Au rendu |
 | --- | --- | --- |
-| Nombre de tests | 232 | 299 |
-| Couverture des lignes | 75 % | 76 % |
+| Nombre de tests | 232 | 313 |
+| Couverture des lignes | 75 % | 72 % |
 | Violations des règles d'architecture | 0 | 0 |
+
+La couverture baisse de 76 % à 72 % avec la refonte graphique du Village et du Donjon : les
+composants d'interface (`village-scene.tsx`, `dungeon/arena.tsx`) sont mesurés, mais vérifiés
+manuellement et non par des tests unitaires.
 
 ## Usage de l'IA générative
 
 - Outil : Claude utilisé en conversation, sans accès en écriture au dépôt.
 - Code : propositions des tests unitaires et refactorisation du code manuellement effectuée pour la
   plupart (+ rédaction des commentaires), pour les deux modules.
-- Documents : premières rédactions des ADR 10, 11 et 12, des revues de sécurité des deux modules et
+- Documents : premières rédactions des ADR 10, 11, 12 et 13 des revues de sécurité des deux modules et
   mise à jour du fichier architecture.
 - Fiches de cadrage : idée et règles rédigées par moi, complétées et reformulées avec l'assistant.
