@@ -8,6 +8,20 @@ import type { ChampionList, QuestBoard, QuestError, QuestView, Reward } from './
 /** Client HTTP typé, déduit de la sous-application Hono du module. */
 const client = hc<QuestsApi>('/api/quests')
 
+/**
+ * Signal émis par l'écran des Quêtes à chaque nouveau tableau (lecture, réclamation) :
+ * la pastille du menu se met à jour aussitôt, sans attendre sa prochaine lecture.
+ */
+const boardChanged = new EventTarget()
+
+/** Signale un nouveau tableau à la pastille du menu. */
+const announce = (board: QuestBoard) =>
+  boardChanged.dispatchEvent(new CustomEvent('change', { detail: board }))
+
+/** Nombre de quêtes terminées dont la récompense n'a pas encore été réclamée. */
+const claimableIn = (board: QuestBoard) =>
+  board.quests.filter((quest) => quest.completed && !quest.claimed).length
+
 /** Message affiché au joueur pour chaque erreur. */
 const ERRORS: Record<QuestError['code'] | 'INVALID_INPUT', string> = {
   INVALID_INPUT: 'Quête invalide.',
@@ -70,7 +84,10 @@ export function QuestsScreen() {
   // REQUÊTE : tableau des quêtes du jour.
   const refresh = useCallback(async () => {
     const res = await client.index.$get()
-    if (res.ok) setBoard((await res.json()).board)
+    if (!res.ok) return
+    const next = (await res.json()).board
+    setBoard(next)
+    announce(next)
   }, [])
 
   useEffect(() => {
@@ -86,6 +103,7 @@ export function QuestsScreen() {
     } else {
       setError(null)
       setBoard(body.board)
+      announce(body.board)
     }
   }
 
@@ -145,4 +163,40 @@ export function useChampions(refreshKey: unknown): Set<string> {
 /** Badge « Quêtes du jour accomplies », affiché à côté du nom d'un joueur. */
 export function QuestBadge() {
   return <Entity kind="badge" />
+}
+
+/** Intervalle de relecture des quêtes pour la pastille du menu, en millisecondes. */
+const NOTIFY_POLL_MS = 30_000
+
+/**
+ * Pastille du menu : nombre de quêtes terminées à réclamer. Une quête se termine par une action
+ * faite dans un autre module : le tableau est relu à chaque changement de page (refreshKey), au
+ * retour sur l'onglet, et toutes les 30 secondes. La pastille disparaît quand la récompense est
+ * réclamée : aucun « déjà vu » n'est donc nécessaire (ADR 14).
+ */
+export function useQuestNotifications(refreshKey: unknown): number {
+  const [count, setCount] = useState(0)
+
+  useEffect(() => {
+    void refreshKey
+    let active = true
+    const read = async () => {
+      const res = await client.index.$get().catch(() => null)
+      if (active && res?.ok) setCount(claimableIn((await res.json()).board))
+    }
+    const onChange = (event: Event) =>
+      setCount(claimableIn((event as CustomEvent<QuestBoard>).detail))
+    read()
+    const timer = setInterval(read, NOTIFY_POLL_MS)
+    window.addEventListener('focus', read)
+    boardChanged.addEventListener('change', onChange)
+    return () => {
+      active = false
+      clearInterval(timer)
+      window.removeEventListener('focus', read)
+      boardChanged.removeEventListener('change', onChange)
+    }
+  }, [refreshKey])
+
+  return count
 }

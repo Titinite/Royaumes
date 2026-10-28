@@ -213,6 +213,26 @@ sa table des hauts faits débloqués : la plateforme transmet pour cela le nom d
 fournie par le module. Les notifications sont affichées par le cadre de l'espace de jeu
 (`src/ui/app-shell.tsx`), au moyen de l'entrée publique `achievements/ui.tsx`.
 
+Le menu latéral du cadre affiche une pastille à côté des Quêtes, des Hauts faits et de la Taverne
+(ADR 0014). Le cadre ne calcule rien : chaque module fournit le nombre de nouveautés de sa rubrique
+par un hook de son entrée publique `ui.tsx`. Les Quêtes comptent les récompenses à réclamer ; les
+Hauts faits et la Taverne comptent ce qui est postérieur au dernier élément vu, retenu par le
+navigateur.
+
+```mermaid
+flowchart LR
+  shell["Cadre de l'espace de jeu<br/>src/ui/app-shell.tsx<br/>(menu et pastilles)"]
+  q["quests/ui.tsx<br/>useQuestNotifications"]
+  a["achievements/ui.tsx<br/>useAchievementNotifications"]
+  t["tavern/ui.tsx<br/>useTavernNotifications"]
+  store[("Stockage local<br/>du navigateur<br/>(déjà vu)")]
+  shell --> q & a & t
+  q -->|"GET /api/quests<br/>(changement de page, 30s)"| api["Application serveur"]
+  a -->|"GET /api/achievements<br/>canal achievements-joueur"| api
+  t -->|"GET /api/tavern/messages<br/>canal tavern"| api
+  a & t --- store
+```
+
 ## Extraction du Village
 
 Le Village peut s'exécuter dans un service autonome, distinct de l'application serveur

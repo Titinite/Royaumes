@@ -336,6 +336,24 @@ button.link { background: none; color: var(--accent); padding: 0; }
 .sidebar-logout { width: 100%; color: var(--warn); }
 .sidebar-logout .game-icon { color: var(--warn); }
 
+/*
+ * Pastilles des nouveautés (ADR 14) : un nombre à droite du lien ; sur le menu replié, une
+ * petite pastille sur l'icône ; sur petit écran, un point sur le bouton du menu fermé.
+ */
+.nav-icon { position: relative; display: inline-flex; }
+.nav-badge {
+  margin-left: auto; min-width: 20px; height: 20px; padding: 0 6px; border-radius: 999px;
+  display: grid; place-items: center; background: var(--warn); color: #fff;
+  font: 700 0.72rem system-ui, sans-serif; font-variant-numeric: tabular-nums;
+  box-shadow: 0 0 0 2px var(--panel); animation: badge-pop 0.35s var(--side-ease);
+}
+@keyframes badge-pop { 0% { transform: scale(0); } 60% { transform: scale(1.25); } }
+.icon-button { position: relative; }
+.burger-dot {
+  position: absolute; top: 7px; right: 7px; width: 9px; height: 9px; border-radius: 50%;
+  background: var(--warn); box-shadow: 0 0 0 2px var(--bg); animation: badge-pop 0.35s var(--side-ease);
+}
+
 /* Barre du haut et voile du tiroir : petit écran seulement. */
 .topbar {
   position: sticky; top: 0; z-index: 20; display: flex; align-items: center; gap: 8px;
@@ -363,6 +381,10 @@ button.link { background: none; color: var(--accent); padding: 0; }
   .shell[data-collapsed='true'] .sidebar-user a,
   .shell[data-collapsed='true'] .sidebar-logout,
   .shell[data-collapsed='true'] .player { justify-content: center; padding-inline: 0; }
+    /* Menu replié : la pastille se pose sur le coin de l'icône. */
+  .shell[data-collapsed='true'] .nav-badge {
+    position: absolute; top: 4px; right: 10px; min-width: 16px; height: 16px; padding: 0 4px; font-size: 0.62rem;
+  }
 }
 
 @media (max-width: 1023.98px) {
@@ -382,6 +404,7 @@ button.link { background: none; color: var(--accent); padding: 0; }
 @media (prefers-reduced-motion: reduce) {
   .shell, .sidebar, .sidebar-backdrop, .burger span, .sidebar-nav a .game-icon { transition: none; }
   .sidebar-nav a[aria-current='page']::before { animation: none; }
+    .nav-badge, .burger-dot { animation: none; }
 }
 
 /* Indicateur de connexion temps réel. */

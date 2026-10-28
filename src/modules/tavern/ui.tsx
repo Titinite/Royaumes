@@ -3,6 +3,7 @@ import { hc } from 'hono/client'
 import { type FormEvent, useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { QuestBadge, useChampions } from '@/modules/quests/ui'
 import { useChannel } from '@/platform/realtime/use-channel'
+import { readNumber, seenKey, writeNumber } from '@/ui/device-store'
 import { Entity } from '@/ui/entity'
 import type { TavernApi } from './api'
 import {
@@ -150,6 +151,8 @@ export function TavernScreen({ userId }: { userId: string }) {
     const first = lastId.current === 0
     const added = messages.filter((m) => m.id > lastId.current).length
     lastId.current = last.id
+    // Le joueur est dans la Taverne : les messages affichés sont vus (pastille du menu).
+    writeNumber(seenKey('taverne', userId), last.id)
     if (first || atBottom.current || last.authorId === userId) {
       list.current.scrollTo({ top: list.current.scrollHeight, behavior: first ? 'auto' : 'smooth' })
       setUnread(0)
@@ -295,4 +298,43 @@ export function TavernScreen({ userId }: { userId: string }) {
       </div>
     </>
   )
+}
+
+/**
+ * Pastille du menu : nombre de messages d'autres joueurs publiés depuis le dernier passage
+ * dans la Taverne. L'identifiant du dernier message vu est retenu par le navigateur (ADR 14),
+ * et avancé par l'écran de la Taverne. Pendant que le joueur est dans la Taverne (viewing),
+ * le canal n'est pas ouvert une seconde fois, et la pastille est masquée.
+ */
+export function useTavernNotifications(userId: string, viewing: boolean): number {
+  const key = seenKey('taverne', userId)
+  // Identifiants des messages des autres joueurs, et du dernier message vu.
+  const [others, setOthers] = useState<number[]>([])
+  const [seen, setSeen] = useState<number | null>(null)
+
+  // Lecture à l'ouverture du jeu et à chaque sortie de la Taverne. Sans marqueur (premier passage
+  // sur ce navigateur), les messages existants sont considérés comme vus.
+  useEffect(() => {
+    if (viewing) return
+    client.messages.$get().then(async (res) => {
+      if (!res.ok) return
+      const latest = (await res.json()).messages
+      let marker = readNumber(key)
+      if (marker === null) {
+        marker = Math.max(0, ...latest.map((m) => m.id))
+        writeNumber(key, marker)
+      }
+      const ids = latest.filter((m) => m.authorId !== userId).map((m) => m.id)
+      // Union avec les messages déjà reçus par le canal, si la lecture arrive après eux.
+      setOthers((current) => [...new Set([...current, ...ids])])
+      setSeen(marker)
+    })
+  }, [viewing, key, userId])
+
+  useChannel(viewing ? null : TAVERN_CHANNEL, (event) => {
+    const message = event.data as unknown as TavernMessage
+    if (message.authorId !== userId) setOthers((current) => [...current, message.id])
+  })
+
+  return viewing || seen === null ? 0 : new Set(others.filter((id) => id > seen)).size
 }
