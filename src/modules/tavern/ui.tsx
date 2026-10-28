@@ -1,8 +1,9 @@
 'use client'
 import { hc } from 'hono/client'
-import { type FormEvent, useCallback, useEffect, useState } from 'react'
+import { type FormEvent, useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { QuestBadge, useChampions } from '@/modules/quests/ui'
 import { useChannel } from '@/platform/realtime/use-channel'
+import { readNumber, seenKey, writeNumber } from '@/ui/device-store'
 import { Entity } from '@/ui/entity'
 import type { TavernApi } from './api'
 import {
@@ -61,12 +62,43 @@ function leave() {
 const timeOf = (at: number) =>
   new Date(at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
 
+/** Délai sous lequel deux messages d'un même auteur sont regroupés sous un seul nom. */
+const GROUP_MS = 5 * 60_000
+
+/** Distance au bas de la liste, en pixels, sous laquelle le joueur est considéré « en bas ». */
+const NEAR_BOTTOM_PX = 80
+
+/** Teinte stable de l'avatar d'un joueur, déduite de son identifiant. */
+function hueOf(id: string) {
+  let hash = 0
+  for (const char of id) hash = (hash * 31 + char.charCodeAt(0)) % 360
+  return hash
+}
+
+/** Avatar d'un joueur : l'initiale de son nom, sur une couleur propre à ce joueur. */
+function Avatar({ id, name }: { id: string; name: string }) {
+  return (
+    <span
+      className="avatar"
+      style={{ '--hue': hueOf(id) } as React.CSSProperties}
+      aria-hidden="true"
+    >
+      {name.slice(0, 1).toUpperCase()}
+    </span>
+  )
+}
+
 /** Écran de la Taverne : salon de discussion et joueurs présents. */
 export function TavernScreen({ userId }: { userId: string }) {
   const [messages, setMessages] = useState<TavernMessage[]>([])
   const [players, setPlayers] = useState<PresentPlayer[]>([])
   const [draft, setDraft] = useState('')
   const [error, setError] = useState<string | null>(null)
+  // Liste des messages, et nombre de messages arrivés pendant que le joueur lisait plus haut.
+  const list = useRef<HTMLOListElement>(null)
+  const atBottom = useRef(true)
+  const [unread, setUnread] = useState(0)
+  const lastId = useRef(0)
 
   // Joueurs qui ont accompli leurs quêtes du jour, relus à chaque nouveau message.
   const champions = useChampions(messages.length)
@@ -109,6 +141,37 @@ export function TavernScreen({ userId }: { userId: string }) {
     }
   }, [])
 
+  // DÉFILEMENT : à l'arrivée d'un message, la liste descend jusqu'en bas si le joueur y était
+  // déjà, ou si le message est le sien. S'il lisait plus haut, sa lecture n'est pas
+  // interrompue : un bouton indique les nouveaux messages. useLayoutEffect défile avant
+  // l'affichage, sans saut visible.
+  useLayoutEffect(() => {
+    const last = messages.at(-1)
+    if (!last || last.id === lastId.current || !list.current) return
+    const first = lastId.current === 0
+    const added = messages.filter((m) => m.id > lastId.current).length
+    lastId.current = last.id
+    // Le joueur est dans la Taverne : les messages affichés sont vus (pastille du menu).
+    writeNumber(seenKey('taverne', userId), last.id)
+    if (first || atBottom.current || last.authorId === userId) {
+      list.current.scrollTo({ top: list.current.scrollHeight, behavior: first ? 'auto' : 'smooth' })
+      setUnread(0)
+    } else {
+      setUnread((count) => count + added)
+    }
+  }, [messages, userId])
+
+  function onScroll() {
+    const el = list.current
+    if (!el) return
+    atBottom.current = el.scrollHeight - el.scrollTop - el.clientHeight < NEAR_BOTTOM_PX
+    if (atBottom.current) setUnread(0)
+  }
+
+  function scrollToBottom() {
+    list.current?.scrollTo({ top: list.current.scrollHeight, behavior: 'smooth' })
+  }
+
   // COMMANDE : publication d'un message.
   async function send(event: FormEvent) {
     event.preventDefault()
@@ -135,27 +198,78 @@ export function TavernScreen({ userId }: { userId: string }) {
       </div>
 
       <div className="tavern">
-        <section className="panel" aria-label="Messages">
-          {messages.length === 0 && <p className="muted">Aucun message pour le moment.</p>}
-          <ul className="messages">
-            {messages.map((message) => (
-              <li key={message.id} data-mine={message.authorId === userId || undefined}>
-                <span className="muted">{timeOf(message.postedAt)}</span>{' '}
-                <strong>{message.authorName}</strong>
-                {champions.has(message.authorId) && <QuestBadge />} {message.body}
-              </li>
-            ))}
-          </ul>
-          <form className="row" onSubmit={send}>
+        <section className="panel tavern-room" aria-label="Salle commune">
+          <header className="tavern-head">
+            <h2>Salle commune</h2>
+            <small className="muted">Les derniers messages de tous les joueurs</small>
+          </header>
+
+          <div className="tavern-feed">
+            {messages.length === 0 && (
+              <p className="muted tavern-empty">
+                Aucun message pour le moment : lancez la discussion !
+              </p>
+            )}
+            <ol className="messages" ref={list} onScroll={onScroll} aria-live="polite">
+              {messages.map((message, i) => {
+                const previous = messages[i - 1]
+                // Un message suit le précédent s'il est du même auteur, et envoyé peu après.
+                const follows =
+                  previous?.authorId === message.authorId &&
+                  message.postedAt - previous.postedAt < GROUP_MS
+                const mine = message.authorId === userId
+                return (
+                  <li
+                    key={message.id}
+                    data-mine={mine || undefined}
+                    data-follows={follows || undefined}
+                  >
+                    {!mine && !follows && (
+                      <Avatar id={message.authorId} name={message.authorName} />
+                    )}
+                    <div className="bubble">
+                      {!follows && (
+                        <div className="bubble-head">
+                          <strong>{mine ? 'Vous' : message.authorName}</strong>
+                          {champions.has(message.authorId) && <QuestBadge />}
+                        </div>
+                      )}
+                      <p>{message.body}</p>
+                      <time dateTime={new Date(message.postedAt).toISOString()}>
+                        {timeOf(message.postedAt)}
+                      </time>
+                    </div>
+                  </li>
+                )
+              })}
+            </ol>
+            {unread > 0 && (
+              <button type="button" className="new-messages" onClick={scrollToBottom}>
+                {unread} nouveau{unread > 1 ? 'x' : ''} message{unread > 1 ? 's' : ''} ↓
+              </button>
+            )}
+          </div>
+
+          <form className="composer" onSubmit={send}>
             <input
               aria-label="Votre message"
               value={draft}
               maxLength={MESSAGE_MAX_LENGTH * 2}
               onChange={(e) => setDraft(e.target.value)}
-              placeholder="Votre message"
-              style={{ flex: 1 }}
+              placeholder="Écrire à la Taverne…"
+              autoComplete="off"
             />
-            <button type="submit">Envoyer</button>
+            {draft.length > MESSAGE_MAX_LENGTH * 0.8 && (
+              <small
+                className="composer-count"
+                data-over={draft.length > MESSAGE_MAX_LENGTH || undefined}
+              >
+                {draft.length} / {MESSAGE_MAX_LENGTH}
+              </small>
+            )}
+            <button type="submit" disabled={draft.trim() === ''}>
+              Envoyer
+            </button>
           </form>
           {error && (
             <p className="error" role="alert">
@@ -164,15 +278,63 @@ export function TavernScreen({ userId }: { userId: string }) {
           )}
         </section>
 
-        <section className="panel" aria-label="Joueurs présents">
-          <h2>Présents</h2>
+        <section className="panel tavern-presence" aria-label="Joueurs présents">
+          <h2>
+            Présents <span className="muted">({players.length})</span>
+          </h2>
           <ul className="presence">
             {players.map((player) => (
-              <li key={player.id}>{player.name}</li>
+              <li key={player.id}>
+                <span className="presence-avatar">
+                  <Avatar id={player.id} name={player.name} />
+                  <span className="online-dot" aria-hidden="true" />
+                </span>
+                {player.name}
+                {player.id === userId && <span className="muted"> (vous)</span>}
+              </li>
             ))}
           </ul>
         </section>
       </div>
     </>
   )
+}
+
+/**
+ * Pastille du menu : nombre de messages d'autres joueurs publiés depuis le dernier passage
+ * dans la Taverne. L'identifiant du dernier message vu est retenu par le navigateur (ADR 14),
+ * et avancé par l'écran de la Taverne. Pendant que le joueur est dans la Taverne (viewing),
+ * le canal n'est pas ouvert une seconde fois, et la pastille est masquée.
+ */
+export function useTavernNotifications(userId: string, viewing: boolean): number {
+  const key = seenKey('taverne', userId)
+  // Identifiants des messages des autres joueurs, et du dernier message vu.
+  const [others, setOthers] = useState<number[]>([])
+  const [seen, setSeen] = useState<number | null>(null)
+
+  // Lecture à l'ouverture du jeu et à chaque sortie de la Taverne. Sans marqueur (premier passage
+  // sur ce navigateur), les messages existants sont considérés comme vus.
+  useEffect(() => {
+    if (viewing) return
+    client.messages.$get().then(async (res) => {
+      if (!res.ok) return
+      const latest = (await res.json()).messages
+      let marker = readNumber(key)
+      if (marker === null) {
+        marker = Math.max(0, ...latest.map((m) => m.id))
+        writeNumber(key, marker)
+      }
+      const ids = latest.filter((m) => m.authorId !== userId).map((m) => m.id)
+      // Union avec les messages déjà reçus par le canal, si la lecture arrive après eux.
+      setOthers((current) => [...new Set([...current, ...ids])])
+      setSeen(marker)
+    })
+  }, [viewing, key, userId])
+
+  useChannel(viewing ? null : TAVERN_CHANNEL, (event) => {
+    const message = event.data as unknown as TavernMessage
+    if (message.authorId !== userId) setOthers((current) => [...current, message.id])
+  })
+
+  return viewing || seen === null ? 0 : new Set(others.filter((id) => id > seen)).size
 }

@@ -2,8 +2,11 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { type ReactNode, useEffect, useRef, useState } from 'react'
-import { AchievementToasts } from '@/modules/achievements/ui'
+import { AchievementToasts, useAchievementNotifications } from '@/modules/achievements/ui'
+import { useQuestNotifications } from '@/modules/quests/ui'
+import { useTavernNotifications } from '@/modules/tavern/ui'
 import { authClient } from '@/platform/auth/client'
+import { readNumber, removeAll, SEEN_PREFIX, writeNumber } from './device-store'
 import { GameIcon } from './game-icon'
 
 /** Liens de navigation : chaque module ajouté au jeu y reçoit une entrée. */
@@ -21,22 +24,21 @@ export const NAV = [
 const WIDE_SCREEN = '(min-width: 1024px)'
 
 /** Clé du stockage local qui retient le menu replié, sur grand écran. */
-const COLLAPSED_KEY = 'royaumes.menu-replie'
+const COLLAPSED_KEY = 'menu-replie'
 
-/** Lecture et écriture du stockage local : il peut être indisponible (navigation privée). */
-function readCollapsed() {
-  try {
-    return localStorage.getItem(COLLAPSED_KEY) === '1'
-  } catch {
-    return false
-  }
-}
-function writeCollapsed(collapsed: boolean) {
-  try {
-    localStorage.setItem(COLLAPSED_KEY, collapsed ? '1' : '0')
-  } catch {
-    // Le choix ne sera simplement pas retenu.
-  }
+/** Pastille d'un lien du menu : le nombre est plafonné à 9+ ; il est aussi lu, par sr-only. */
+function NavBadge({ count }: { count: number }) {
+  if (count === 0) return null
+  return (
+    <>
+      <span key={count} className="nav-badge" aria-hidden="true">
+        {count > 9 ? '9+' : count}
+      </span>
+      <span className="sr-only">
+        , {count} nouveauté{count > 1 ? 's' : ''}
+      </span>
+    </>
+  )
 }
 
 /** Icône du bouton de menu : trois traits, qui se croisent lorsque le menu est ouvert. */
@@ -52,7 +54,7 @@ function BurgerIcon() {
 
 /**
  * Cadre de l'espace de jeu : menu latéral, nom du joueur, accès à ses données, déconnexion,
- * et notifications des hauts faits débloqués, visibles sur chaque page.
+ * pastilles des nouveautés de chaque rubrique, et notifications des hauts faits débloqués.
  * Sur grand écran, le menu est toujours visible, et peut être replié en une colonne d'icônes.
  * Sur petit écran, il est masqué derrière le bouton de la barre du haut, et s'ouvre en tiroir.
  */
@@ -73,7 +75,19 @@ export function AppShell({
   const firstLink = useRef<HTMLAnchorElement>(null)
 
   // Le choix du menu replié est relu après le premier rendu, identique sur le serveur.
-  useEffect(() => setCollapsed(readCollapsed()), [])
+  useEffect(() => setCollapsed(readNumber(COLLAPSED_KEY) === 1), [])
+
+  // PASTILLES : chaque module fournit, par son entrée publique ui.tsx, le nombre de nouveautés
+  // de sa rubrique (ADR 14). Le cadre ne fait que les afficher.
+  const achievements = useAchievementNotifications(userId, pathname.startsWith('/achievements'))
+  const quests = useQuestNotifications(pathname)
+  const tavern = useTavernNotifications(userId, pathname.startsWith('/tavern'))
+  const badges: Record<string, number> = {
+    '/quests': quests,
+    '/achievements': achievements.count,
+    '/tavern': tavern,
+  }
+  const total = Object.values(badges).reduce((sum, n) => sum + n, 0)
 
   // Le tiroir se referme à chaque changement de page.
   // biome-ignore lint/correctness/useExhaustiveDependencies: la page courante déclenche la fermeture.
@@ -106,7 +120,7 @@ export function AppShell({
 
   function toggleCollapsed() {
     setCollapsed((current) => {
-      writeCollapsed(!current)
+      writeNumber(COLLAPSED_KEY, current ? 0 : 1)
       return !current
     })
   }
@@ -115,6 +129,8 @@ export function AppShell({
     // La session est supprimée côté serveur, puis la page est entièrement rechargée,
     // afin qu'aucun état de la session précédente ne subsiste dans le navigateur.
     await authClient.signOut()
+    // Les marqueurs « déjà vu » des pastilles ne survivent pas à la session (ADR 14).
+    removeAll(SEEN_PREFIX)
     window.location.href = '/login'
   }
 
@@ -132,10 +148,16 @@ export function AppShell({
           className="icon-button"
           aria-expanded={open}
           aria-controls="menu-principal"
-          aria-label={open ? 'Fermer le menu' : 'Ouvrir le menu'}
+          aria-label={
+            open
+              ? 'Fermer le menu'
+              : `Ouvrir le menu${total > 0 ? `, ${total} nouveauté${total > 1 ? 's' : ''}` : ''}`
+          }
           onClick={() => setOpen((value) => !value)}
         >
           <BurgerIcon />
+          {/* Menu fermé : un point signale qu'une rubrique a des nouveautés. */}
+          {total > 0 && !open && <span className="burger-dot" aria-hidden="true" />}
         </button>
         <Link href="/village" className="brand topbar-brand">
           <GameIcon kind="village" size={22} decorative />
@@ -178,8 +200,11 @@ export function AppShell({
               title={collapsed ? item.label : undefined}
               aria-current={pathname.startsWith(item.href) ? 'page' : undefined}
             >
-              <GameIcon kind={item.kind} size={22} decorative />
+              <span className="nav-icon">
+                <GameIcon kind={item.kind} size={22} decorative />
+              </span>
               <span className="sidebar-text">{item.label}</span>
+              <NavBadge count={badges[item.href] ?? 0} />
             </Link>
           ))}
         </nav>
@@ -218,7 +243,7 @@ export function AppShell({
       <main id="contenu" className="shell-content" inert={open}>
         {children}
       </main>
-      <AchievementToasts userId={userId} />
+      <AchievementToasts toasts={achievements.toasts} />
     </div>
   )
 }

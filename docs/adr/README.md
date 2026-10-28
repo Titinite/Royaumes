@@ -19,3 +19,4 @@ un nouvel ADR est rédigé et l'ancien prend le statut « remplacé ».
 | [11](11-quetes-communication.md) | Communication des Quêtes : lecture du langage publié, et versement par la boîte d'envoi | Accepté |
 | [12](12-hauts-faits.md) | Hauts faits : projection du journal, déblocages permanents, canal temps réel par joueur | Accepté |
 | [13](13-festin-village.md) | Festin du Village : effet temporaire calculé par le domaine, à partir d'un seul événement | Accepté |
+| [14](14-pastilles-notification.md) | Pastilles du menu : nouveautés fournies par chaque module, « déjà vu » retenu par le navigateur | Accepté |

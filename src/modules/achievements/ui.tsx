@@ -2,6 +2,7 @@
 import { hc } from 'hono/client'
 import { useEffect, useState } from 'react'
 import { useChannel } from '@/platform/realtime/use-channel'
+import { readNumber, seenKey, writeNumber } from '@/ui/device-store'
 import { Entity } from '@/ui/entity'
 import type { AchievementsApi } from './api'
 import {
@@ -76,19 +77,65 @@ export function AchievementsScreen() {
 /** Durée d'affichage d'une notification, en millisecondes. */
 const TOAST_MS = 6000
 
+/** Notification affichée pour un haut fait débloqué. */
+export type AchievementToast = AchievementUnlockedData & { key: number }
+
 /**
- * Notifications des hauts faits débloqués, affichées quel que soit l'onglet ouvert.
- * TEMPS RÉEL : le canal du joueur annonce chaque haut fait au moment de son déblocage.
+ * Notifications des hauts faits, affichées quel que soit l'onglet ouvert : les notifications
+ * éphémères (toasts) et le nombre de hauts faits pas encore vus, pour la pastille du menu.
+ * TEMPS RÉEL : un seul abonnement au canal du joueur sert aux deux.
+ * « Déjà vu » : la date du dernier haut fait vu est retenue par le navigateur (ADR 14) ; elle
+ * avance lorsque le joueur ouvre l'écran des Hauts faits (viewing).
  */
-export function AchievementToasts({ userId }: { userId: string }) {
-  const [toasts, setToasts] = useState<(AchievementUnlockedData & { key: number })[]>([])
+export function useAchievementNotifications(userId: string, viewing: boolean) {
+  const [toasts, setToasts] = useState<AchievementToast[]>([])
+  // Dates d'obtention des hauts faits connus, et date du dernier haut fait vu.
+  const [unlocked, setUnlocked] = useState<number[]>([])
+  const [seen, setSeen] = useState<number | null>(null)
+  const key = seenKey('hauts-faits', userId)
+
+  // Lecture initiale. Sans marqueur (premier passage sur ce navigateur), les hauts faits déjà
+  // obtenus sont considérés comme vus : seuls les suivants sont signalés.
+  useEffect(() => {
+    client.index.$get().then(async (res) => {
+      if (!res.ok) return
+      const dates = (await res.json()).board.achievements.flatMap((a) =>
+        a.unlockedAt === null ? [] : [a.unlockedAt],
+      )
+      let marker = readNumber(key)
+      if (marker === null) {
+        marker = Math.max(0, ...dates)
+        writeNumber(key, marker)
+      }
+      // Union avec les hauts faits déjà reçus par le canal, si la lecture arrive après eux.
+      setUnlocked((current) => [...new Set([...current, ...dates])])
+      setSeen(marker)
+    })
+  }, [key])
 
   useChannel(achievementsChannel(userId), (event) => {
     const toast = { ...(event.data as unknown as AchievementUnlockedData), key: event.position }
     setToasts((current) => [...current, toast])
+    setUnlocked((current) => [...current, toast.unlockedAt])
     setTimeout(() => setToasts((current) => current.filter((t) => t.key !== toast.key)), TOAST_MS)
   })
 
+  // Écran des Hauts faits ouvert : tous les hauts faits connus deviennent vus.
+  useEffect(() => {
+    if (!viewing || unlocked.length === 0) return
+    const latest = Math.max(...unlocked)
+    if (seen === null || latest > seen) {
+      writeNumber(key, latest)
+      setSeen(latest)
+    }
+  }, [viewing, unlocked, seen, key])
+
+  const count = seen === null || viewing ? 0 : unlocked.filter((at) => at > seen).length
+  return { count, toasts }
+}
+
+/** Notifications éphémères des hauts faits débloqués, fournies par useAchievementNotifications. */
+export function AchievementToasts({ toasts }: { toasts: AchievementToast[] }) {
   return (
     <div className="toasts" aria-live="polite">
       {toasts.map((toast) => (

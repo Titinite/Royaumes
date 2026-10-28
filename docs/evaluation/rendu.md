@@ -84,6 +84,21 @@ modification du dépôt soit tracée.
 Aucun autre module n'est modifié : le Classement, les Quêtes et les Hauts faits ne lisent pas
 l'événement `FeastHeld`.
 
+## Évolutions de l'interface
+
+Ces évolutions ne modifient aucune règle du jeu ni aucune donnée enregistrée. Elles sont tracées
+ici, sans être revendiquées comme exigences ou comme bonus.
+
+| Évolution | Fichiers principaux | Vérification | Documentation |
+| --- | --- | --- | --- |
+| Refonte graphique du Village (scène illustrée, plaques de niveau, caméra et plan d'architecte) et du Donjon (arène, cartes d'action, rejeu de la manche) | `src/modules/realm/village-scene.tsx`, `src/modules/realm/ui.tsx`, `src/modules/dungeon/arena.tsx`, `src/ui/game-icon.tsx`, `src/ui/icon-paths.ts` | Manuelle (ordinateur, mobile, thème sombre, animations réduites) | README (Crédits : icônes game-icons.net, CC BY 3.0) |
+| Menu latéral repliable, en tiroir sur petit écran | `src/ui/app-shell.tsx`, `app/layout.tsx`, `app/globals.css` | Manuelle (clavier, Échap, mobile, tablette) | - |
+| Taverne : bulles, défilement automatique, bouton des nouveaux messages | `src/modules/tavern/ui.tsx` | Manuelle (deux comptes) | - |
+| Pastilles du menu (quêtes à réclamer, hauts faits et messages non vus) | `quests/ui.tsx` (`useQuestNotifications`), `achievements/ui.tsx` (`useAchievementNotifications`), `tavern/ui.tsx` (`useTavernNotifications`), `src/ui/device-store.ts`, `src/ui/app-shell.tsx` | Manuelle (deux comptes) ; `pnpm lint:archi` (le cadre n'importe que les entrées publiques `ui.tsx`) | ADR 14 ; `docs/architecture.md` ; README (Temps réel) |
+
+Les pastilles touchent l'interface des deux modules évalués (`quests` et `achievements`), sans
+modifier leur domaine, leur API ni leurs tables.
+
 ## Indicateurs au rendu
 
 | Indicateur | À l'étiquette `td11-fin` | Au rendu |
@@ -104,3 +119,5 @@ manuellement et non par des tests unitaires.
 - Documents : premières rédactions des ADR 10, 11, 12 et 13 des revues de sécurité des deux modules et
   mise à jour du fichier architecture.
 - Fiches de cadrage : idée et règles rédigées par moi, complétées et reformulées avec l'assistant.
+- Interface (refonte graphique, menu, Taverne, pastilles) : maquettes, code et première rédaction
+  de l'ADR 14 proposés par l'assistant ; choix de conception faits par moi.

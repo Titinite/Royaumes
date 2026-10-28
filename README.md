@@ -111,6 +111,10 @@ Le module Quêtes n'a pas de canal propre : la progression est relue à l'ouvert
 quêtes, et après chaque réclamation. Le canal `achievements-<joueur>`, réservé à son propriétaire,
 annonce chaque haut fait débloqué ; l'interface l'affiche en notification, sur toutes les pages.
 
+Le menu signale par une pastille les quêtes terminées à réclamer, les hauts faits obtenus et les
+nouveaux messages de la Taverne (ADR 14). Le « déjà vu » des deux derniers est retenu par le
+navigateur, et supprimé à la déconnexion : il n'est pas partagé entre appareils.
+
 ## Échanges entre modules
 
 Une opération qui modifie les données de plusieurs modules, comme un échange du Marché, est

@@ -1,4 +1,4 @@
-import type { Building } from './contracts'
+import { type Building, MAX_LEVEL } from './contracts'
 
 /**
  * Scène illustrée du village : décor, hôtel de ville et quatre bâtiments, dessinés en SVG.
@@ -154,6 +154,14 @@ function BuildingDrawing({
           <Drawing level={level} />
         </g>
       </g>
+      {/* Plan bleu : la silhouette du niveau suivant, en pointillés, sur le bâtiment sélectionné. */}
+      {selected && level < MAX_LEVEL && (
+        <g className="v-ghost">
+          <g transform={`scale(${scaleOf(level + 1) * 1.06})`}>
+            <Drawing level={level + 1} />
+          </g>
+        </g>
+      )}
       {level === 0 && (
         <g transform="translate(52 -10)">
           <rect className="v-pole-fill" x="-2" y="0" width="4" height="22" />
