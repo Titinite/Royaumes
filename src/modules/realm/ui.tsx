@@ -14,7 +14,6 @@ import {
   FEAST,
   type Feast,
   feastAt,
-  MAX_LEVEL,
   RESOURCES,
   type Stock,
   stockAt,
@@ -71,27 +70,98 @@ const HALL_STYLE = {
   height: `${(198 / SCENE.height) * 100}%`,
 }
 
+/** Niveau d'un bâtiment en chiffres romains, gravé sur sa plaque (de I à X). */
+const ROMAN = ['', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X']
+const roman = (level: number) => ROMAN[level] ?? String(level)
+
+/** Grossissement de la caméra sur un bâtiment, et sur l'hôtel de ville, plus haut. */
+const ZOOM = { building: 2, hall: 1.7 }
+
+/**
+ * Caméra : position de la scène pour cadrer un élément de la scène, à l'échelle zoom.
+ * Le plan d'architecte occupe un côté de la scène : l'élément est cadré dans l'autre côté
+ * (focusX), sur grand écran. Sur petit écran, le plan passe sous la scène : l'élément est centré.
+ * Le déplacement est borné, pour ne jamais montrer le vide autour de la scène.
+ */
+function cameraOn(x: number, y: number, zoom: number, focusX: number) {
+  const clamp = (v: number) => Math.min(0, Math.max(1 - zoom, v))
+  const px = x / SCENE.width
+  const py = y / SCENE.height
+  return {
+    '--zoom': zoom,
+    '--tx': `${clamp(focusX - zoom * px) * 100}%`,
+    '--tx-narrow': `${clamp(0.5 - zoom * px) * 100}%`,
+    '--ty': `${clamp(0.5 - zoom * py) * 100}%`,
+  } as React.CSSProperties
+}
+
 /** Durée restante, au format minutes:secondes. */
 function formatRemaining(ms: number) {
   const seconds = Math.max(0, Math.ceil(ms / 1000))
   return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`
 }
 
-/** Coût d'une amélioration, présenté par les icônes des ressources. */
-function CostView({ cost }: { cost: Partial<Stock> }) {
+/** Coût, présenté par les icônes des ressources ; une ressource insuffisante est signalée. */
+function CostView({ cost, stock }: { cost: Partial<Stock>; stock: Stock }) {
   return (
     <span className="cost">
       {Object.entries(cost).map(([r, n]) => (
-        <span key={r}>
-          <GameIcon kind={r} size={18} /> {n}
+        <span key={r} data-missing={stock[r as keyof Stock] < (n ?? 0) || undefined}>
+          <GameIcon kind={r} size={16} /> {n}
         </span>
       ))}
     </span>
   )
 }
 
-/** Panneau d'un bâtiment sélectionné : niveau, production, coût et amélioration. */
-function BuildingPanel({
+/** Côté de la scène où s'ouvre le plan : à l'opposé de l'élément, pour ne pas le masquer. */
+type Side = 'left' | 'right'
+const sideOf = (x: number): Side => (x < SCENE.width / 2 ? 'right' : 'left')
+
+/** Plan d'architecte : cadre commun aux panneaux des bâtiments et de l'hôtel de ville. */
+function Blueprint({
+  side,
+  kicker,
+  title,
+  error,
+  onClose,
+  children,
+}: {
+  side: Side
+  kicker: string
+  title: string
+  error: string | null
+  onClose: () => void
+  children: React.ReactNode
+}) {
+  return (
+    <section className="blueprint" data-side={side} aria-label={title}>
+      <header className="blueprint-head">
+        <div>
+          <small>{kicker}</small>
+          <h3>{title}</h3>
+        </div>
+        <button
+          type="button"
+          className="blueprint-close"
+          onClick={onClose}
+          aria-label="Fermer le plan"
+        >
+          ×
+        </button>
+      </header>
+      {children}
+      {error && (
+        <p className="blueprint-error" role="alert">
+          {error}
+        </p>
+      )}
+    </section>
+  )
+}
+
+/** Plan d'un bâtiment : niveau actuel et suivant, production, coût et lancement des travaux. */
+function BuildingPlan({
   building,
   view,
   stock,
@@ -109,49 +179,53 @@ function BuildingPanel({
   const level = view.levels[building]
   const { produces, perMinute } = CATALOG[building]
   const cost = view.nextCosts[building]
-  // Le panneau est placé du côté de la scène opposé au bâtiment, pour ne pas le masquer.
-  const side = BUILDING_SPOTS[building].x < SCENE.width / 2 ? 'right' : 'left'
   return (
-    <section className="building-panel" data-side={side} aria-label={look(building).label}>
-      <button type="button" className="link close" onClick={onClose} aria-label="Fermer">
-        ×
-      </button>
-      <h3>{look(building).label}</h3>
-      <div className="muted">
-        {level === 0 ? 'À bâtir' : `Niveau ${level}`}
-        {level < MAX_LEVEL && ` → ${level + 1}`}
+    <Blueprint
+      side={sideOf(BUILDING_SPOTS[building].x)}
+      kicker="Plan d'architecte"
+      title={look(building).label}
+      error={error}
+      onClose={onClose}
+    >
+      <div className="blueprint-levels">
+        <span className="plaque">{level === 0 ? 'À bâtir' : roman(level)}</span>
+        {cost && (
+          <>
+            <span className="blueprint-arrow" aria-hidden="true">
+              →
+            </span>
+            <span className="plaque plaque-next">{roman(level + 1)}</span>
+          </>
+        )}
       </div>
-      <div className="panel-row">
-        <span>Production</span>
-        <span>
-          <GameIcon kind={produces} size={18} /> <strong>+{perMinute * level}</strong>
-          {level < MAX_LEVEL && ` → +${perMinute * (level + 1)}`} / min
-        </span>
-      </div>
+      <dl className="blueprint-notes">
+        <dt>Production</dt>
+        <dd>
+          <GameIcon kind={produces} size={16} /> +{perMinute * level}
+          {cost && <strong> → +{perMinute * (level + 1)}</strong>} / min
+        </dd>
+        {cost && (
+          <>
+            <dt>Matériaux</dt>
+            <dd>
+              <CostView cost={cost} stock={stock} />
+            </dd>
+          </>
+        )}
+      </dl>
       {cost ? (
-        <>
-          <div className="panel-row">
-            <span>Coût</span>
-            <CostView cost={cost} />
-          </div>
-          <button type="button" disabled={!canAfford(stock, cost)} onClick={onUpgrade}>
-            {level === 0 ? 'Construire' : 'Améliorer'}
-          </button>
-        </>
+        <button type="button" disabled={!canAfford(stock, cost)} onClick={onUpgrade}>
+          {level === 0 ? 'Bâtir' : 'Lancer les travaux'}
+        </button>
       ) : (
-        <p className="ok">Niveau maximal atteint.</p>
+        <p className="blueprint-done">Niveau maximal atteint.</p>
       )}
-      {error && (
-        <p className="error" role="alert">
-          {error}
-        </p>
-      )}
-    </section>
+    </Blueprint>
   )
 }
 
-/** Panneau de l'hôtel de ville : organisation d'un festin, ou temps restant du festin en cours. */
-function HallPanel({
+/** Plan de l'hôtel de ville : organisation d'un festin, ou temps restant du festin en cours. */
+function HallPlan({
   feast,
   stock,
   now,
@@ -167,37 +241,38 @@ function HallPanel({
   onClose: () => void
 }) {
   return (
-    <section className="building-panel" data-side="hall" aria-label="Hôtel de ville">
-      <button type="button" className="link close" onClick={onClose} aria-label="Fermer">
-        ×
-      </button>
-      <h3>Hôtel de ville</h3>
-      <div className="muted">Festin du village</div>
-      <div className="panel-row">
-        <span>Production</span>
-        <span>
-          <strong>+{FEAST.bonus * 100} %</strong> pendant {FEAST.durationMs / 60_000} min
-        </span>
-      </div>
+    <Blueprint
+      side="left"
+      kicker="Hôtel de ville"
+      title="Festin du village"
+      error={error}
+      onClose={onClose}
+    >
+      <dl className="blueprint-notes">
+        <dt>Effet</dt>
+        <dd>
+          <strong>+{FEAST.bonus * 100} %</strong> de production pendant {FEAST.durationMs / 60_000}{' '}
+          min
+        </dd>
+        {!feast && (
+          <>
+            <dt>Provisions</dt>
+            <dd>
+              <CostView cost={FEAST.cost} stock={stock} />
+            </dd>
+          </>
+        )}
+      </dl>
       {feast ? (
-        <p className="ok">Festin en cours : encore {formatRemaining(feast.until - now)}.</p>
-      ) : (
-        <>
-          <div className="panel-row">
-            <span>Coût</span>
-            <CostView cost={FEAST.cost} />
-          </div>
-          <button type="button" disabled={!canAfford(stock, FEAST.cost)} onClick={onFeast}>
-            Organiser un festin
-          </button>
-        </>
-      )}
-      {error && (
-        <p className="error" role="alert">
-          {error}
+        <p className="blueprint-done">
+          Festin en cours : encore {formatRemaining(feast.until - now)}.
         </p>
+      ) : (
+        <button type="button" disabled={!canAfford(stock, FEAST.cost)} onClick={onFeast}>
+          Organiser un festin
+        </button>
       )}
-    </section>
+    </Blueprint>
   )
 }
 
@@ -263,6 +338,14 @@ export function VillageScreen({ userId }: { userId: string }) {
     setSelected((current) => (current === building ? null : building))
   }
 
+  // Échap referme le plan, et ramène la caméra sur tout le village.
+  useEffect(() => {
+    if (!selected) return
+    const onKey = (event: KeyboardEvent) => event.key === 'Escape' && setSelected(null)
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [selected])
+
   const title = (
     <div className="row" style={{ justifyContent: 'space-between' }}>
       <h1>
@@ -304,6 +387,17 @@ export function VillageScreen({ userId }: { userId: string }) {
   // Le festin de la vue est terminé dès que l'heure locale dépasse sa fin.
   const feast = feastAt(view.feast, now)
   const boost = 1 + (feast?.bonus ?? 0)
+  // Caméra : cadrage de l'élément sélectionné, ou vue d'ensemble.
+  const camera = !selected
+    ? undefined
+    : selected === 'hall'
+      ? cameraOn(HALL_SPOT.x, HALL_SPOT.y - 50, ZOOM.hall, 0.68)
+      : cameraOn(
+          BUILDING_SPOTS[selected].x,
+          BUILDING_SPOTS[selected].y - 20,
+          ZOOM.building,
+          sideOf(BUILDING_SPOTS[selected].x) === 'right' ? 0.3 : 0.7,
+        )
   return (
     <>
       {title}
@@ -329,8 +423,8 @@ export function VillageScreen({ userId }: { userId: string }) {
         </p>
       )}
 
-      <section className="village-stage" aria-label="Bâtiments du village">
-        <div className="village-map">
+      <section className="village-stage" aria-label="Bâtiments du village" data-zoomed={!!selected}>
+        <div className="village-map" style={camera}>
           <VillageScene
             name={view.name}
             levels={view.levels}
@@ -345,16 +439,9 @@ export function VillageScreen({ userId }: { userId: string }) {
             aria-pressed={selected === 'hall'}
             aria-label={`Hôtel de ville${feast ? ', festin en cours' : ''}`}
             onClick={() => select('hall')}
-          >
-            {feast && (
-              <span className="spot-level spot-feast" aria-hidden="true">
-                <GameIcon kind="feast" size={16} />
-              </span>
-            )}
-          </button>
+          />
           {BUILDINGS.map((b) => {
             const level = view.levels[b]
-            const producing = level > 0
             return (
               <button
                 key={b}
@@ -365,26 +452,17 @@ export function VillageScreen({ userId }: { userId: string }) {
                 aria-label={`${look(b).label}, ${level === 0 ? 'à bâtir' : `niveau ${level}`}`}
                 onClick={() => select(b)}
               >
-                {producing && (
-                  <span className="spot-gain" aria-hidden="true">
-                    +{CATALOG[b].perMinute * level}{' '}
-                    <GameIcon kind={CATALOG[b].produces} size={14} />
-                  </span>
-                )}
-                {producing && (
-                  <span className="spot-level" aria-hidden="true">
-                    {level}
-                  </span>
-                )}
+                {/* Plaque de pierre : nom du bâtiment, et niveau gravé en chiffres romains. */}
                 <span className="spot-label" aria-hidden="true">
                   {look(b).label}
+                  {level > 0 && <b>{roman(level)}</b>}
                 </span>
               </button>
             )
           })}
         </div>
         {selected === 'hall' && (
-          <HallPanel
+          <HallPlan
             feast={feast}
             stock={stock}
             now={now}
@@ -394,7 +472,7 @@ export function VillageScreen({ userId }: { userId: string }) {
           />
         )}
         {selected && selected !== 'hall' && (
-          <BuildingPanel
+          <BuildingPlan
             building={selected}
             view={view}
             stock={stock}
@@ -405,7 +483,8 @@ export function VillageScreen({ userId }: { userId: string }) {
         )}
       </section>
       <p className="muted hint">
-        Cliquez sur un bâtiment pour l'améliorer, ou sur l'hôtel de ville pour organiser un festin.
+        Cliquez sur un bâtiment pour ouvrir son plan, ou sur l'hôtel de ville pour organiser un
+        festin.
       </p>
     </>
   )

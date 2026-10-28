@@ -91,7 +91,7 @@ ici, sans être revendiquées comme exigences ou comme bonus.
 
 | Évolution | Fichiers principaux | Vérification | Documentation |
 | --- | --- | --- | --- |
-| Refonte graphique du Village (scène illustrée) et du Donjon (arène, cartes d'action, rejeu de la manche) | `src/modules/realm/village-scene.tsx`, `src/modules/dungeon/arena.tsx`, `src/ui/game-icon.tsx`, `src/ui/icon-paths.ts` | Manuelle (ordinateur, mobile, thème sombre, animations réduites) | README (Crédits : icônes game-icons.net, CC BY 3.0) |
+| Refonte graphique du Village (scène illustrée, plaques de niveau, caméra et plan d'architecte) et du Donjon (arène, cartes d'action, rejeu de la manche) | `src/modules/realm/village-scene.tsx`, `src/modules/realm/ui.tsx`, `src/modules/dungeon/arena.tsx`, `src/ui/game-icon.tsx`, `src/ui/icon-paths.ts` | Manuelle (ordinateur, mobile, thème sombre, animations réduites) | README (Crédits : icônes game-icons.net, CC BY 3.0) |
 | Menu latéral repliable, en tiroir sur petit écran | `src/ui/app-shell.tsx`, `app/layout.tsx`, `app/globals.css` | Manuelle (clavier, Échap, mobile, tablette) | - |
 | Taverne : bulles, défilement automatique, bouton des nouveaux messages | `src/modules/tavern/ui.tsx` | Manuelle (deux comptes) | - |
 | Pastilles du menu (quêtes à réclamer, hauts faits et messages non vus) | `quests/ui.tsx` (`useQuestNotifications`), `achievements/ui.tsx` (`useAchievementNotifications`), `tavern/ui.tsx` (`useTavernNotifications`), `src/ui/device-store.ts`, `src/ui/app-shell.tsx` | Manuelle (deux comptes) ; `pnpm lint:archi` (le cadre n'importe que les entrées publiques `ui.tsx`) | ADR 14 ; `docs/architecture.md` ; README (Temps réel) |
