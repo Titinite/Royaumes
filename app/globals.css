@@ -632,12 +632,69 @@ button.link { background: none; color: var(--accent); padding: 0; }
 .games li + li, .offers li + li { padding-top: 8px; border-top: 1px solid var(--line); }
 input.amount { width: 5em; }
 
-/* Taverne */
-.tavern { display: grid; grid-template-columns: 1fr 200px; gap: 16px; align-items: start; }
-@media (max-width: 640px) { .tavern { grid-template-columns: 1fr; } }
-.messages { list-style: none; padding: 0; margin: 0 0 12px; display: grid; gap: 6px; max-height: 60vh; overflow-y: auto; overflow-wrap: anywhere; }
-.messages li[data-mine] strong { color: var(--accent); }
-.presence { list-style: none; padding: 0; margin: 0; display: grid; gap: 4px; }
+/* Taverne : salle commune en bulles, présents, et bouton des nouveaux messages. */
+.tavern { display: grid; grid-template-columns: 1fr 220px; gap: 16px; align-items: start; }
+@media (max-width: 760px) { .tavern { grid-template-columns: 1fr; } }
+.tavern .avatar {
+  display: grid; place-items: center; flex: none; width: 32px; height: 32px; border-radius: 50%;
+  background: hsl(var(--hue, 30) 45% 42%); color: #fff; font: 700 0.95rem var(--title);
+}
+.tavern-room { display: flex; flex-direction: column; padding: 0; overflow: hidden; }
+.tavern-head {
+  padding: 12px 18px; border-bottom: 1px solid var(--line);
+  background: linear-gradient(90deg, color-mix(in srgb, var(--accent) 14%, var(--panel)), var(--panel));
+}
+.tavern-head h2 { margin: 0; }
+.tavern-feed { position: relative; }
+.tavern-empty { padding: 24px 18px 0; text-align: center; }
+.messages {
+  list-style: none; margin: 0; padding: 14px 16px; display: flex; flex-direction: column; gap: 2px;
+  height: min(58vh, 520px); overflow-y: auto; overflow-wrap: anywhere; overscroll-behavior: contain;
+  background: color-mix(in srgb, var(--bg) 45%, var(--panel));
+}
+.messages li { display: flex; align-items: flex-end; gap: 8px; max-width: 82%; animation: bubble-in 0.25s ease-out; }
+.messages li:not([data-follows]) { margin-top: 10px; }
+.messages li:first-child { margin-top: auto; }
+.messages li[data-follows]:not([data-mine]) { padding-left: 40px; }
+.messages li[data-mine] { align-self: flex-end; flex-direction: row-reverse; }
+@keyframes bubble-in { from { opacity: 0; transform: translateY(6px); } }
+.bubble {
+  position: relative; padding: 7px 12px 6px; border-radius: 14px 14px 14px 4px;
+  background: var(--panel); border: 1px solid var(--line); box-shadow: 0 1px 2px rgb(0 0 0 / 0.05);
+}
+.messages li[data-mine] .bubble { border-radius: 14px 14px 4px 14px; background: var(--accent); color: var(--accent-ink); border-color: transparent; }
+.bubble-head { display: flex; align-items: center; gap: 6px; font-size: 0.85rem; }
+.messages li:not([data-mine]) .bubble-head strong { color: var(--accent); }
+.bubble p { margin: 2px 0 0; line-height: 1.4; }
+.bubble time { display: block; text-align: right; font-size: 0.7rem; opacity: 0.6; margin-top: 2px; }
+.new-messages {
+  position: absolute; left: 50%; bottom: 12px; transform: translateX(-50%);
+  border-radius: 999px; padding: 6px 14px; font-size: 0.85rem; box-shadow: var(--shadow); white-space: nowrap;
+  animation: bubble-in 0.25s ease-out;
+}
+.composer { display: flex; align-items: center; gap: 8px; max-width: none; padding: 12px 16px; border-top: 1px solid var(--line); }
+.composer input { flex: 1; min-width: 0; border-radius: 999px; padding-inline: 16px; }
+.composer button { border-radius: 999px; }
+.composer-count { color: var(--muted); font-variant-numeric: tabular-nums; }
+.composer-count[data-over] { color: var(--warn); font-weight: 600; }
+.tavern-room > .error { margin: 0 16px 12px; }
+.presence { list-style: none; padding: 0; margin: 0; display: grid; gap: 8px; }
+.presence li { display: flex; align-items: center; gap: 10px; }
+.presence-avatar { position: relative; display: inline-flex; }
+.online-dot {
+  position: absolute; right: -1px; bottom: -1px; width: 11px; height: 11px; border-radius: 50%;
+  background: var(--ok); border: 2px solid var(--panel); animation: online 2.4s ease-in-out infinite;
+}
+@keyframes online { 50% { box-shadow: 0 0 0 4px color-mix(in srgb, var(--ok) 25%, transparent); } }
+@media (max-width: 760px) {
+  .presence { display: flex; flex-wrap: wrap; gap: 8px 14px; }
+  .messages li { max-width: 92%; }
+  /* Sur mobile, la salle tient dans l'écran : barre du haut, titre, en-tête et saisie compris. */
+  .messages { height: max(280px, calc(100dvh - 300px)); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .messages li, .new-messages, .online-dot { animation: none; }
+}
 
 /* Mes données : un lien présenté comme un bouton */
 a.button { display: inline-block; padding: 8px 14px; border-radius: 8px; background: var(--accent); color: var(--accent-ink); text-decoration: none; }
