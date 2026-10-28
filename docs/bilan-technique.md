@@ -1,6 +1,6 @@
 # Bilan technique de Royaumes
 
-- Date : 2026-10-23
+- Date : 2026-10-28
 - Version examinée : étiquette `eval-fin` (comparée à `td11-fin`)
 - Auteur : Thibault LERAY
 
@@ -14,21 +14,21 @@ revues. Il s'adresse à la personne qui reprendrait le projet.
 | --- | --- |
 | Modules métier | 8 |
 | Briques de la plateforme | 9 |
-| Lignes de code, hors tests | 9466 |
-| Fichiers de test, nombre de tests | 42, 299 |
-| Commits | 101 |
+| Lignes de code, hors tests | 10482 |
+| Fichiers de test, nombre de tests | 42, 313 |
+| Commits | 121 |
 | Hébergement | Vercel (Francfort), base Neon (Francfort) |
 
 | Module | Stockage | Lignes, hors tests |
 | --- | --- | --- |
-| `realm` | Event Sourcing | 937 |
-| `dungeon` | Event Sourcing, projection des expéditions ouvertes | 2064 |
-| `market` | Event Sourcing, projection des offres, saga | 1271 |
-| `ranking` | Projection du journal | 459 |
-| `tavern` | Tables ordinaires | 678 |
-| `quests` | Tables ordinaires tenues par une projection du journal, boîte d'envoi | 918 |
-| `achievements` | Tables ordinaires tenues par une projection du journal, canal par joueur | 725 |
-| `system` | Aucun | 73 |
+| `realm` | Event Sourcing, festin calculé par le domaine (ADR 13) | 1708 |
+| `dungeon` | Event Sourcing, projection des expéditions ouvertes | 2164 |
+| `market` | Event Sourcing, projection des offres, saga | 1153 |
+| `ranking` | Projection du journal | 419 |
+| `tavern` | Tables ordinaires | 757 |
+| `quests` | Tables ordinaires tenues par une projection du journal, boîte d'envoi | 972 |
+| `achievements` | Tables ordinaires tenues par une projection du journal, canal par joueur | 768 |
+| `system` | Aucun | 64 |
 
 ## 2. Les décisions d'architecture
 
@@ -46,25 +46,27 @@ revues. Il s'adresse à la personne qui reprendrait le projet.
 | 10 | Quêtes : tables classiques tenues par une projection, tirage déterministe | Reconstruction de la projection, purge quotidienne, réclamations simultanées | Aucune écriture pour attribuer les quêtes, et une conservation limitée simple à appliquer. La reconstruction ne doit jamais vider les réclamations, ce qu'un test protège |
 | 11 | Quêtes : lecture du langage publié, versement par la boîte d'envoi | Versement effectif au Village dans les tests d'API, doublons ignorés | Aucun module existant n'a été modifié côté serveur. La projection dépend de la forme des événements des autres modules, et `enqueue` étend la plateforme |
 | 12 | Hauts faits : projection du journal, déblocages permanents, canal temps réel par joueur | Reconstruction de la projection (dates conservées), canal refusé à un autre joueur, test de charge | Aucun module existant n'a été modifié côté serveur, et les hauts faits survivent à une reconstruction. En contrepartie, chaque joueur connecté déclenche un rattrapage de la projection deux fois par seconde, et la plateforme a dû transmettre le nom du canal à la source |
+| 13 | Festin du Village : effet temporaire calculé par le domaine, à partir d'un seul événement | Tests de la fin d'un festin au milieu d'un intervalle, de deux festins simultanés, et de la route dans les deux modes d'exécution du Village | Aucune tâche planifiée ni événement de fin, et aucun autre module modifié. En contrepartie, la fin d'un festin n'apparaît pas dans le journal, et le coût fixe le rend peu rentable au début du jeu |
+| 14 | Pastilles du menu : nouveautés fournies par chaque module, « déjà vu » retenu par le navigateur | Vérification manuelle à deux comptes ; `pnpm lint:archi` (le cadre n'importe que les entrées publiques `ui.tsx`) | Aucune table ni donnée personnelle de plus côté serveur, et les frontières sont respectées. En contrepartie, le « déjà vu » n'est pas partagé entre appareils, et chaque joueur connecté ouvre un canal de plus |
 
 ## 3. La qualité
 
 | Caractéristique | Indicateur | Valeur | Appréciation |
 | --- | --- | --- | --- |
-| Adéquation fonctionnelle | Tests réussis ; couverture des domaines | 278 tests (232 à `td11-fin`), 75,83 % de couverture des lignes (75 % à `td11-fin`) ; domaine et application des Quêtes couverts à 100 % | Chaque règle de la fiche de cadrage des Quêtes est vérifiée par un test. L'écran des Quêtes, comme les autres écrans, n'est pas testé automatiquement |
+| Adéquation fonctionnelle | Tests réussis ; couverture des domaines | 313 tests (232 à `td11-fin`), 66 % de couverture des lignes (75 % à `td11-fin`) ; domaine et application des Quêtes couverts à 100 % | Chaque règle de la fiche de cadrage des Quêtes est vérifiée par un test. L'écran des Quêtes, comme les autres écrans, n'est pas testé automatiquement |
 | Efficacité des performances | Débit et p99 des lectures ; respect du budget | 8 scénarios, dont 3 pour les nouveaux modules ; débit entre 106 et 208 requêtes/s ; p99 entre 212 et 381 ms (maximum : Hauts faits), pour un budget de 500 ms ; aucune erreur | Toutes les lectures respectent le budget. Les Hauts faits et les Quêtes sont les lectures les plus lentes, car elles rattrapent leur projection avant de répondre. Ces mesures locales ne garantissent pas les mêmes performances en production |
 | Fiabilité | Tests de concurrence, de reprise et d'idempotence ; messages abandonnés | 0 | La boîte d’envoi et la saga prévoient des mécanismes de reprise. Leur fiabilité dépend des tests de panne, de la gestion des doublons et du suivi des messages en échec |
 | Sécurité | Exigences des revues de sécurité | À reprendre des comptes rendus | Les contrôles permettent d’identifier les faiblesses. Les actions non résolues doivent rester suivies dans la dette technique |
-| Maintenabilité | Règles d'architecture ; fonctions d'aptitude ; couverture | 0 violation (comme à `td11-fin`) ; 2 fonctions d'aptitude respectées sans modification ; 75,83 % de couverture des lignes | Le module Quêtes respecte les frontières : il n'utilise les autres modules que par leurs contrats et leur `ui.tsx`. L'interface reste sans tests automatiques |
+| Maintenabilité | Règles d'architecture ; fonctions d'aptitude ; couverture | 0 violation (comme à `td11-fin`) ; 2 fonctions d'aptitude respectées sans modification ; <ta couverture> % de couverture des lignes, en baisse avec le code d'interface ajouté | Le module Quêtes respecte les frontières : il n'utilise les autres modules que par leurs contrats et leur `ui.tsx`. L'interface reste sans tests automatiques |
 | Flexibilité | Extraction d'un module ; changement de base entre local et production | Extraction du Village préparée, mais non déployée | L’extraction permet de tester les frontières entre modules. Le service autonome nécessite encore des corrections avant son éventuel déploiement |
 
 ## 4. La dette technique
 
 | Indicateur | Valeur |
 | --- | --- |
-| Entrées consignées | 13 |
+| Entrées consignées | 15 |
 | Entrées remboursées, dont à l'échéance prévue | 7, dont 7 remboursées à l'échéance indiquée |
-| Entrées ouvertes | 6 |
+| Entrées ouvertes | 8 |
 
 Analyse :
 Le registre recense 13 entrées de dette technique. 7 sont remboursées.

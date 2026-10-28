@@ -104,12 +104,12 @@ modifier leur domaine, leur API ni leurs tables.
 | Indicateur | À l'étiquette `td11-fin` | Au rendu |
 | --- | --- | --- |
 | Nombre de tests | 232 | 313 |
-| Couverture des lignes | 75 % | 72 % |
+| Couverture des lignes | 75 % | 66 % |
 | Violations des règles d'architecture | 0 | 0 |
 
-La couverture baisse de 76 % à 72 % avec la refonte graphique du Village et du Donjon : les
-composants d'interface (`village-scene.tsx`, `dungeon/arena.tsx`) sont mesurés, mais vérifiés
-manuellement et non par des tests unitaires.
+La couverture baisse avec les évolutions de l'interface (scènes du Village et du Donjon, menu,
+pastilles) : ces composants sont mesurés, mais vérifiés manuellement et non par des tests
+automatisés. Le domaine et l'application des modules évalués restent couverts par leurs tests.
 
 ## Usage de l'IA générative
 
