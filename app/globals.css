@@ -258,34 +258,131 @@ input:focus { border-color: var(--accent); }
   .v-steam { opacity: 0.5; }
 }
 
-/* Navigation de l'espace de jeu : barre fixée en haut, liens en pastilles. */
-.nav {
-  position: sticky;
-  top: 0;
-  z-index: 10;
-  display: flex;
-  gap: 4px;
-  align-items: center;
-  flex-wrap: wrap;
-  margin: -16px -16px 16px;
-  padding: 10px 16px;
-  background: color-mix(in srgb, var(--bg) 85%, transparent);
-  backdrop-filter: blur(8px);
-  border-bottom: 1px solid var(--line);
-}
-.nav a { color: var(--ink); text-decoration: none; padding: 6px 9px; border-radius: 999px; }
-.nav a:hover { background: color-mix(in srgb, var(--accent) 12%, transparent); }
-.nav a[aria-current='page'] {
-  color: var(--accent);
-  font-weight: 600;
-  background: color-mix(in srgb, var(--accent) 16%, transparent);
-}
-
 /* Bouton présenté comme un lien. */
 button.link { background: none; color: var(--accent); padding: 0; }
-.nav button.link { padding: 6px 9px; }
-.nav-user { margin-left: auto; display: flex; gap: 2px; align-items: center; font-size: 0.9rem; }
-.nav-user > span { padding-right: 6px; }
+
+/*
+ * Cadre de l'espace de jeu : menu latéral. Sur grand écran (1024 px et plus, même seuil que
+ * WIDE_SCREEN dans app-shell.tsx), il est toujours visible et peut être replié en colonne
+ * d'icônes. Sur petit écran, il devient un tiroir ouvert par le bouton de la barre du haut.
+ */
+:root { --side-w: 248px; --side-rail: 76px; --side-ease: cubic-bezier(0.2, 0.8, 0.2, 1); }
+.shell { min-height: 100vh; }
+.skip-link {
+  position: fixed; left: 8px; top: -48px; z-index: 100; padding: 8px 12px;
+  background: var(--accent); color: var(--accent-ink); border-radius: 8px; transition: top 0.15s;
+}
+.skip-link:focus { top: 8px; }
+
+.icon-button {
+  display: grid; place-items: center; width: 40px; height: 40px; padding: 0; flex: none;
+  background: none; color: var(--ink); border-radius: 10px;
+}
+.icon-button:hover:not(:disabled) { filter: none; background: color-mix(in srgb, var(--accent) 12%, transparent); }
+
+/* Icône du menu : trois traits qui se croisent lorsque le tiroir est ouvert. */
+.burger { display: grid; gap: 4px; width: 20px; }
+.burger span { height: 2px; border-radius: 2px; background: currentColor; transition: transform 0.25s var(--side-ease), opacity 0.2s; }
+[aria-expanded='true'] > .burger span:nth-child(1) { transform: translateY(6px) rotate(45deg); }
+[aria-expanded='true'] > .burger span:nth-child(2) { opacity: 0; }
+[aria-expanded='true'] > .burger span:nth-child(3) { transform: translateY(-6px) rotate(-45deg); }
+
+.sidebar {
+  position: fixed; inset: 0 auto 0 0; z-index: 30; width: var(--side-w);
+  display: flex; flex-direction: column; gap: 6px; padding: 14px 12px; overflow: hidden auto;
+  background:
+    radial-gradient(240px 180px at 0 0, color-mix(in srgb, var(--accent) 14%, transparent), transparent),
+    var(--panel);
+  border-right: 1px solid var(--line);
+}
+.sidebar-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 10px; }
+.brand {
+  display: flex; align-items: center; gap: 10px; min-width: 0; padding: 4px 6px;
+  color: var(--accent); text-decoration: none; font: 700 1.3rem var(--title);
+}
+.sidebar-close { display: none; }
+.sidebar-text { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+.sidebar-nav { display: grid; gap: 2px; }
+.sidebar-nav a,
+.sidebar-user a,
+.sidebar-logout {
+  position: relative; display: flex; align-items: center; gap: 12px; padding: 10px 12px;
+  border-radius: 10px; color: var(--ink); text-decoration: none; font: inherit; font-weight: 500;
+  background: none; text-align: left; transition: background 0.15s, color 0.15s;
+}
+.sidebar-nav a .game-icon,
+.sidebar-user a .game-icon,
+.sidebar-logout .game-icon { color: var(--muted); transition: transform 0.2s var(--side-ease), color 0.15s; }
+.sidebar-nav a:hover,
+.sidebar-user a:hover,
+.sidebar-logout:hover:not(:disabled) { filter: none; background: color-mix(in srgb, var(--accent) 10%, transparent); }
+.sidebar-nav a:hover .game-icon { transform: translateX(2px) rotate(-6deg); color: var(--accent); }
+/* Page courante : fond teinté et repère à gauche, qui grandit à l'arrivée sur la page. */
+.sidebar a[aria-current='page'] { color: var(--accent); font-weight: 650; background: color-mix(in srgb, var(--accent) 15%, transparent); }
+.sidebar a[aria-current='page'] .game-icon { color: var(--accent); }
+.sidebar-nav a[aria-current='page']::before {
+  content: ''; position: absolute; left: -12px; top: 8px; bottom: 8px; width: 4px;
+  border-radius: 0 4px 4px 0; background: var(--accent); animation: side-mark 0.3s var(--side-ease);
+}
+@keyframes side-mark { from { transform: scaleY(0); } }
+
+.sidebar-user { display: grid; gap: 2px; margin-top: auto; padding-top: 10px; border-top: 1px solid var(--line); }
+.player { display: flex; align-items: center; gap: 12px; padding: 8px 10px; min-width: 0; color: var(--muted); font-size: 0.9rem; }
+.avatar {
+  display: grid; place-items: center; flex: none; width: 30px; height: 30px; border-radius: 50%;
+  background: var(--accent); color: var(--accent-ink); font: 700 0.95rem var(--title);
+}
+.sidebar-logout { width: 100%; color: var(--warn); }
+.sidebar-logout .game-icon { color: var(--warn); }
+
+/* Barre du haut et voile du tiroir : petit écran seulement. */
+.topbar {
+  position: sticky; top: 0; z-index: 20; display: flex; align-items: center; gap: 8px;
+  padding: 8px 12px; background: color-mix(in srgb, var(--bg) 85%, transparent);
+  backdrop-filter: blur(8px); border-bottom: 1px solid var(--line);
+}
+.topbar-brand { font-size: 1.15rem; }
+.sidebar-backdrop {
+  position: fixed; inset: 0; z-index: 25; background: rgb(20 12 4 / 0.45);
+  opacity: 0; pointer-events: none; transition: opacity 0.25s;
+}
+
+@media (min-width: 1024px) {
+  .topbar, .sidebar-backdrop { display: none; }
+  .shell { padding-left: var(--side-w); transition: padding-left 0.25s var(--side-ease); }
+  .sidebar { transition: width 0.25s var(--side-ease); }
+  /* Menu replié : une colonne d'icônes ; les libellés restent lus par les lecteurs d'écran. */
+  .shell[data-collapsed='true'] { padding-left: var(--side-rail); }
+  .shell[data-collapsed='true'] .sidebar { width: var(--side-rail); }
+  .shell[data-collapsed='true'] .sidebar-head { flex-direction: column; }
+  .shell[data-collapsed='true'] .sidebar-text {
+    position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0);
+  }
+  .shell[data-collapsed='true'] .sidebar-nav a,
+  .shell[data-collapsed='true'] .sidebar-user a,
+  .shell[data-collapsed='true'] .sidebar-logout,
+  .shell[data-collapsed='true'] .player { justify-content: center; padding-inline: 0; }
+}
+
+@media (max-width: 1023.98px) {
+  .sidebar {
+    width: min(84vw, 300px); box-shadow: 8px 0 32px rgb(0 0 0 / 0.25);
+    transform: translateX(-100%); visibility: hidden;
+    transition: transform 0.28s var(--side-ease), visibility 0s linear 0.28s;
+  }
+  .shell[data-open='true'] .sidebar { transform: none; visibility: visible; transition: transform 0.28s var(--side-ease); }
+  .shell[data-open='true'] .sidebar-backdrop { opacity: 1; pointer-events: auto; }
+  .sidebar-collapse { display: none; }
+  .sidebar-close { display: grid; font-size: 1.5rem; line-height: 1; }
+  /* Liens du tiroir un peu plus hauts : des cibles faciles à toucher. */
+  .sidebar-nav a, .sidebar-user a, .sidebar-logout { padding-block: 12px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .shell, .sidebar, .sidebar-backdrop, .burger span, .sidebar-nav a .game-icon { transition: none; }
+  .sidebar-nav a[aria-current='page']::before { animation: none; }
+}
 
 /* Indicateur de connexion temps réel. */
 .status { font-size: 0.85rem; color: var(--muted); }

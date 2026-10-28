@@ -50,7 +50,7 @@ export default function LoginPage() {
   }
 
   return (
-    <>
+    <main>
       <h1>
         <Entity kind="village" /> Royaumes
       </h1>
@@ -94,6 +94,6 @@ export default function LoginPage() {
         </p>
       </div>
       <HealthStatus />
-    </>
+    </main>
   )
 }
