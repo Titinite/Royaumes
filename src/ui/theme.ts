@@ -42,6 +42,8 @@ export const theme: Record<string, Look> = {
   badge: { glyph: '🎖️', label: 'Quêtes du jour accomplies' },
   achievements: { glyph: '🏅', label: 'Hauts faits' },
   locked: { glyph: '🔒', label: 'Non obtenu' },
+  account: { glyph: '👤', label: 'Mes données' },
+  logout: { glyph: '🚪', label: 'Déconnexion' },
 }
 
 /** Apparence d'une entité ; une apparence neutre si l'entité n'est pas décrite. */

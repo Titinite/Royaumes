@@ -9,7 +9,8 @@ export const metadata: Metadata = {
 }
 
 /**
- * Mise en page racine, partagée par toutes les pages de l'application.
+ * Mise en page racine, partagée par toutes les pages de l'application. Le contenu principal
+ * (main) est placé par chaque page : la page de connexion, ou le cadre de l'espace de jeu.
  * Le type des propriétés est déclaré explicitement plutôt qu'au moyen du type
  * global LayoutProps généré par Next.js : ce dernier n'existe qu'après une
  * première construction, ce qui ferait échouer la vérification des types
@@ -18,9 +19,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="fr">
-      <body>
-        <main>{children}</main>
-      </body>
+      <body>{children}</body>
     </html>
   )
 }
