@@ -19,7 +19,7 @@
 | E7 | `src/modules/quests/personal-data.ts`, ajouté à `createPrivacyService` | `personal-data.test.ts` ; `quests-api.test.ts` « inclut les quêtes dans l'export, et les efface avec le compte » |
 | E8 | Toutes les règles et routes ci-dessus | Règles 1 à 9 : `daily.test.ts`, `quests-projection.test.ts`, `quests-service.test.ts` ; routes `GET /`, `GET /champions`, `POST /:slot/claim`, tâche quotidienne : `quests-api.test.ts` |
 | E9 | `.dependency-cruiser.cjs` et `architecture.test.ts` inchangés | `pnpm verify` : 0 violation, fonctions d'aptitude réussies |
-| E10 | Migration `0013_quests` appliquée par `vercel-build` | Parcours manuel en production : <à compléter, date> |
+| E10 | Migration `0013_quests` appliquée par `vercel-build` | Parcours manuel en production le 28/10/2026 : réussi |
 
 ## Exigences minimales - module `achievements`
 
